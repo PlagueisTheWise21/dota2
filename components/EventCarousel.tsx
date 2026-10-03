@@ -95,7 +95,7 @@ function CarouselArrow({ direction, disabled, onClick }: CarouselArrowProps) {
       onClick={onClick}
       disabled={disabled}
       aria-label={direction === "prev" ? "Previous events" : "Next events"}
-      className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center border-2 border-black bg-paper font-display text-xl font-bold text-steel transition hover:brightness-110 disabled:cursor-default disabled:opacity-30 sm:h-12 sm:w-12 sm:text-2xl"
+      className="shadow-offset flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center border-2 border-paper/60 bg-panel font-display text-xl font-bold text-paper transition-colors hover:border-paper disabled:cursor-default disabled:opacity-30 disabled:hover:border-paper/60 sm:h-12 sm:w-12 sm:text-2xl"
     >
       <span aria-hidden="true">{direction === "prev" ? "<" : ">"}</span>
     </button>
