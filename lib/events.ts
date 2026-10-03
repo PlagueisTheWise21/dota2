@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { supabase } from "@/lib/supabase";
 
 /** The columns the homepage needs from the `events` table. */
@@ -14,6 +15,55 @@ export type EventsResult = {
   error: string | null;
 };
 
+/** A team taking part in an event (from `teams`, via `event_teams`). */
+export type EventTeam = {
+  /** uuid */
+  id: string;
+  name: string;
+  short_name: string | null;
+  logo_url: string | null;
+};
+
+/** Everything the event page needs. */
+export type EventDetails = {
+  /** uuid */
+  id: string;
+  name: string;
+  start_date: string;
+  end_date: string;
+  status: string;
+  /** Ordered by `event_teams.seed`, unseeded teams last by name. */
+  teams: EventTeam[];
+};
+
+export type EventResult = {
+  /** null with a null error means the event does not exist. */
+  event: EventDetails | null;
+  /** A message safe to show on the page, or null when the query worked. */
+  error: string | null;
+};
+
+/** Shape of the nested Supabase response in getEvent. */
+type EventRow = Omit<EventDetails, "teams"> & {
+  event_teams: { seed: number | null; teams: EventTeam | null }[];
+};
+
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function notConfiguredMessage(): string {
+  const supabaseKeyFound = Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY,
+  );
+  return `Supabase is not configured (URL ${
+    process.env.NEXT_PUBLIC_SUPABASE_URL ? "found" : "missing"
+  }, key ${
+    supabaseKeyFound ? "found" : "missing"
+  }). Check the variable names in .env.local, then restart the dev server.`;
+}
+
 /**
  * Loads events for the homepage carousel.
  *
@@ -23,20 +73,7 @@ export type EventsResult = {
  */
 export async function getEvents(): Promise<EventsResult> {
   if (!supabase) {
-    const supabaseKeyFound = Boolean(
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
-        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY,
-    );
-    return {
-      events: [],
-      error:
-        `Supabase is not configured (URL ${
-          process.env.NEXT_PUBLIC_SUPABASE_URL ? "found" : "missing"
-        }, key ${
-          supabaseKeyFound ? "found" : "missing"
-        }). Check the variable names in .env.local, then restart the dev server.`,
-    };
+    return { events: [], error: notConfiguredMessage() };
   }
 
   const { data, error } = await supabase
@@ -51,3 +88,63 @@ export async function getEvents(): Promise<EventsResult> {
 
   return { events: (data ?? []) as EventSummary[], error: null };
 }
+
+/**
+ * Loads one event and its participating teams for the event page.
+ *
+ * Supabase tables: `events`, `event_teams`, `teams`
+ * Columns read:    `events.id, name, start_date, end_date, status`,
+ *                  `event_teams.seed`,
+ *                  `teams.id, name, short_name, logo_url`
+ *
+ * Wrapped in React `cache` so the page and its metadata share one query.
+ */
+export const getEvent = cache(async (id: string): Promise<EventResult> => {
+  // Not a uuid, so it cannot match an event (and Postgres would reject it).
+  if (!UUID_PATTERN.test(id)) {
+    return { event: null, error: null };
+  }
+
+  if (!supabase) {
+    return { event: null, error: notConfiguredMessage() };
+  }
+
+  const { data, error } = await supabase
+    .from("events")
+    .select(
+      "id, name, start_date, end_date, status, event_teams(seed, teams(id, name, short_name, logo_url))",
+    )
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Failed to load event:", error.message);
+    return { event: null, error: "This event could not be loaded right now." };
+  }
+
+  if (!data) {
+    return { event: null, error: null };
+  }
+
+  const row = data as unknown as EventRow;
+  const teams = row.event_teams
+    .filter((entry) => entry.teams !== null)
+    .sort(
+      (a, b) =>
+        (a.seed ?? Infinity) - (b.seed ?? Infinity) ||
+        a.teams!.name.localeCompare(b.teams!.name),
+    )
+    .map((entry) => entry.teams as EventTeam);
+
+  return {
+    event: {
+      id: row.id,
+      name: row.name,
+      start_date: row.start_date,
+      end_date: row.end_date,
+      status: row.status,
+      teams,
+    },
+    error: null,
+  };
+});

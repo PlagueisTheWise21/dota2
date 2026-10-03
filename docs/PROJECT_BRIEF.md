@@ -90,21 +90,41 @@ Do not over-engineer.
   `NEXT_PUBLIC_SUPABASE_URL` and the key from `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
   `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY`.
   The owner's `.env.local` uses `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
-- `lib/events.ts`: `getEvents()` reads `events.id, name, image_url` ordered by `start_date`.
-- `components/`: `SiteBackground`, `Panel`, `EventCard`, `EventCarousel`.
+- `lib/events.ts`: `getEvents()` for the homepage; `getEvent(id)` for the event page
+  (event plus its teams via `event_teams`; see `supabase/SCHEMA.md`).
+- `components/`: `SiteBackground`, `Panel`, `EventCard`, `EventCarousel`,
+  `FallbackImage` (image with placeholder when the URL is empty or broken),
+  `EventView` (event page shell), `TierList` (drag-and-drop tier list).
+- `lib/tier-layout.ts`: picks the tier list's width and card scale so it fits the
+  screen without scrolling (760px wide first, then wider, then smaller cards).
 - `app/page.tsx`, `app/layout.tsx`, `app/globals.css`: homepage, fonts (Geist + Oswald
   as `font-display`), colour tokens (`ink`, `panel`, `paper`, `steel`), carousel CSS.
-- `app/events/[id]/page.tsx`: "coming soon" stub only, so banner links do not 404.
+- `app/events/[id]/page.tsx`: event page. Header (name, dates, status, back link) and
+  an in-page switch between Tier List and Predictions (no navigation).
+  - Tier list: S/A/B/C/F plus Unranked; all teams start in Unranked in seed order;
+    mouse/touch drag between and within tiers; Escape cancels a drag. Not saved:
+    a refresh resets it (saving needs a table and login; later phases).
+  - "Copy image" button (tier list only): `lib/tier-image.ts` draws the tier list
+    on a canvas (full card size, 760px board, event name as title) and copies it
+    to the clipboard as a PNG; browsers without clipboard images get a download.
+  - Predictions: "coming soon" placeholder (Phase 4).
+- `app/api/logo/route.ts`: serves a team logo from this site so the canvas can
+  use it (browsers block cross-site images there). Only fetches URLs found in
+  `teams.logo_url`. The Mouz logo host (Fandom) refuses server requests, so Mouz
+  shows "MZ" in copied images; re-hosting that logo would fix it.
+- `app/not-found.tsx`: styled 404, also used for unknown or malformed event ids.
 - Welcome wording is placeholder text in two constants at the top of `app/page.tsx`.
+- Event data in Supabase is demo data for testing, not accurate.
 
 ### Confirmed
 - The owner reports the homepage loads events from Supabase and "works nicely".
+- Lint and production build pass. Homepage no-scroll layout checked from 320x480
+  to 1440x900. Event page tier list fits without scrolling from 1920x1080 down to
+  phone portrait; on a landscape phone (about 812x375) the board scrolls inside
+  itself once cards reach the minimum size.
+- Git initialised; `main` pushed to github.com/PlagueisTheWise21/dota2.
 
 ### Not yet verified
-- `npm run build` and `npm run lint` have never been run on this code.
-- The no-scroll layout has not been checked at small/short window sizes.
-- Whether Git is initialised, and whether a GitHub remote exists. Nothing has been
-  committed by the assistant.
 - Whether the old sign-up trigger on `auth.users` (which inserted into the dropped
   `profiles` table) was removed. Check before adding authentication.
 
@@ -125,7 +145,6 @@ Do not over-engineer.
 - A table for saved tier lists (Phase 3).
 
 ### Sensible next steps
-1. Run lint and a production build; fix anything they raise.
-2. Check the homepage at laptop and small window sizes.
-3. Make the first commit and push to GitHub.
-4. Wait for the owner to ask for Phase 2.
+1. Owner reviews the event page and tier list.
+2. Agree a table for saved tier lists before building saving (needs login, Phase 7).
+3. Design the predictions tables before Phase 4.

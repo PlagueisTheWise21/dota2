@@ -1,26 +1,41 @@
+import type { Metadata } from "next";
 import Link from "next/link";
-import { Panel } from "@/components/Panel";
+import { notFound } from "next/navigation";
+import { EventView } from "@/components/EventView";
+import { getEvent } from "@/lib/events";
 
-type EventPageProps = {
-  params: Promise<{ id: string }>;
-};
+// Always read the event from Supabase on request, so dashboard edits show up
+// without rebuilding the site.
+export const dynamic = "force-dynamic";
 
-// Placeholder so event banners have somewhere to go.
-// The real event page is built in Phase 2.
-export default async function EventPage({ params }: EventPageProps) {
+export async function generateMetadata({
+  params,
+}: PageProps<"/events/[id]">): Promise<Metadata> {
   const { id } = await params;
+  const { event } = await getEvent(id);
+  return { title: event ? `${event.name} | Dota 2 Predictions` : undefined };
+}
 
-  return (
-    <main className="flex min-h-dvh w-full flex-col items-center justify-center gap-8 px-4">
-      <Panel className="px-10 py-8 text-center">
-        <h1 className="font-display text-3xl font-bold tracking-wide uppercase">
-          Event {id}
-        </h1>
-        <p className="mt-2">This event page is coming soon.</p>
-      </Panel>
-      <Link href="/" className="text-sm text-paper/70 underline hover:text-paper">
-        Back to events
-      </Link>
-    </main>
-  );
+export default async function EventPage({ params }: PageProps<"/events/[id]">) {
+  const { id } = await params;
+  const { event, error } = await getEvent(id);
+
+  if (error) {
+    return (
+      <main className="flex min-h-dvh w-full flex-col items-center justify-center gap-6 px-4">
+        <p className="max-w-xl border-2 border-black bg-panel px-6 py-4 text-center text-sm text-paper/80">
+          {error}
+        </p>
+        <Link href="/" className="text-sm text-paper/70 underline hover:text-paper">
+          Back to events
+        </Link>
+      </main>
+    );
+  }
+
+  if (!event) {
+    notFound();
+  }
+
+  return <EventView event={event} />;
 }

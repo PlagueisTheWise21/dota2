@@ -53,4 +53,9 @@ All `id` columns are `uuid` with default `gen_random_uuid()`.
 | seed | smallint | yes | |
 
 ## What the code reads today
-- Homepage (`lib/events.ts`): `events.id`, `events.name`, `events.image_url`, ordered by `events.start_date`.
+- Homepage (`lib/events.ts`, `getEvents`): `events.id`, `events.name`, `events.image_url`, ordered by `events.start_date`.
+- Event page (`lib/events.ts`, `getEvent`): `events.id, name, start_date, end_date, status`,
+  plus `event_teams.seed` and `teams.id, name, short_name, logo_url` through `event_teams`.
+  Teams are ordered by `seed` (unseeded last, then by name); the seed is not displayed.
+- Logo route (`app/api/logo/route.ts`): `teams.logo_url`, to check a requested URL
+  is a real team logo before fetching it.
