@@ -108,10 +108,17 @@ Do not over-engineer.
     on a canvas (full card size, 760px board, event name as title) and copies it
     to the clipboard as a PNG; browsers without clipboard images get a download.
   - Predictions: "coming soon" placeholder (Phase 4).
-- `app/api/logo/route.ts`: serves a team logo from this site so the canvas can
-  use it (browsers block cross-site images there). Only fetches URLs found in
-  `teams.logo_url`. The Mouz logo host (Fandom) refuses server requests, so Mouz
-  shows "MZ" in copied images; re-hosting that logo would fix it.
+- `app/api/logo/route.ts`: serves a team logo from this site so the browser may
+  read its pixels (for trimming and the copied image). Only fetches URLs found in
+  `teams.logo_url`. Some hosts refuse server requests (Fandom/Wikia did); such a
+  logo shows untrimmed on the page and as its short name in copied images.
+- `lib/logo-trim.ts`: trims empty margins off logos in the browser (via the logo
+  route) and shrinks them to 256px, once per visit. Cards and the copied image
+  both use it. Team cards: logo area 60px of the 82px card, one-line name.
+- The project lives on a D: drive whose file system does not support Windows
+  junctions or file ownership. Git needs `safe.directory` for it, and the dev
+  server crashes on native server packages such as `sharp`. Avoid those, or move
+  the project to an NTFS drive (e.g. C:).
 - `app/not-found.tsx`: styled 404, also used for unknown or malformed event ids.
 - Welcome wording is placeholder text in two constants at the top of `app/page.tsx`.
 - Event data in Supabase is demo data for testing, not accurate.

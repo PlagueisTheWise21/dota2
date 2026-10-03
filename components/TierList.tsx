@@ -12,6 +12,7 @@ import {
 } from "react";
 import { FallbackImage } from "@/components/FallbackImage";
 import type { EventTeam } from "@/lib/events";
+import { getTrimmedLogo, peekTrimmedLogo } from "@/lib/logo-trim";
 import {
   BASE,
   BOX_BORDER,
@@ -460,10 +461,40 @@ type TierCardProps = {
   onPointerDown?: (event: ReactPointerEvent<HTMLElement>) => void;
 };
 
-/** A draggable team box: logo on top, name underneath. */
+/**
+ * The logo with its empty margins trimmed (lib/logo-trim.ts).
+ * undefined while trimming; null if there is no logo or trimming failed.
+ */
+function useTrimmedLogo(logoUrl: string | null): string | null | undefined {
+  const [loaded, setLoaded] = useState<{ url: string; trimmed: string | null } | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (!logoUrl || peekTrimmedLogo(logoUrl) !== undefined) return;
+    let cancelled = false;
+    getTrimmedLogo(logoUrl).then((trimmed) => {
+      if (!cancelled) setLoaded({ url: logoUrl, trimmed });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [logoUrl]);
+
+  if (!logoUrl) return null;
+  const ready = peekTrimmedLogo(logoUrl);
+  if (ready !== undefined) return ready;
+  return loaded?.url === logoUrl ? loaded.trimmed : undefined;
+}
+
+/**
+ * A draggable team box: logo on top (most of the card), name underneath on
+ * one line; the full name shows on hover.
+ */
 function TierCard({ team, scale, dimmed, lifted, onPointerDown }: TierCardProps) {
   const fallbackLabel = team.short_name ?? team.name.slice(0, 3);
   const interactive = Boolean(onPointerDown);
+  const trimmedLogo = useTrimmedLogo(team.logo_url);
 
   return (
     <div
@@ -480,31 +511,36 @@ function TierCard({ team, scale, dimmed, lifted, onPointerDown }: TierCardProps)
     >
       <div
         className="flex shrink-0 items-center justify-center bg-[#1e1e1e]"
-        style={{ height: 52 * scale, padding: 4 * scale }}
+        style={{ height: BASE.logoArea * scale, padding: BASE.logoPad * scale }}
       >
-        <FallbackImage
-          src={team.logo_url}
-          alt=""
-          className="h-full w-full object-contain"
-          fallback={
-            <span
-              className="font-display font-bold tracking-wide text-paper uppercase"
-              style={{ fontSize: 18 * scale }}
-            >
-              {fallbackLabel}
-            </span>
-          }
-        />
+        {/* Empty for a moment while the logo is trimmed. If trimming fails,
+            show the original logo, then the short name if that fails too. */}
+        {trimmedLogo !== undefined && (
+          <FallbackImage
+            src={trimmedLogo ?? team.logo_url}
+            retrySrc={team.logo_url}
+            alt=""
+            className="h-full w-full object-contain"
+            fallback={
+              <span
+                className="font-display font-bold tracking-wide text-paper uppercase"
+                style={{ fontSize: 18 * scale }}
+              >
+                {fallbackLabel}
+              </span>
+            }
+          />
+        )}
       </div>
       <p
-        className="flex flex-1 items-center justify-center text-center leading-tight font-semibold [overflow-wrap:anywhere]"
+        className="flex min-h-0 flex-1 items-center justify-center leading-none font-semibold"
         style={{
-          fontSize: Math.max(8, 11 * scale),
+          fontSize: Math.max(8, BASE.nameFont * scale),
           paddingInline: 3 * scale,
           borderTop: `${ROW_BORDER}px solid #000`,
         }}
       >
-        <span className="line-clamp-2">{team.name}</span>
+        <span className="min-w-0 truncate">{team.name}</span>
       </p>
     </div>
   );

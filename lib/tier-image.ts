@@ -1,6 +1,7 @@
 import type { Placements } from "@/components/TierList";
 import { TIERS } from "@/components/TierList";
 import type { EventTeam } from "@/lib/events";
+import { getTrimmedLogo } from "@/lib/logo-trim";
 import { BASE, BOX_BORDER, PREFERRED_WIDTH, ROW_BORDER } from "@/lib/tier-layout";
 
 /**
@@ -26,8 +27,8 @@ const PADDING = 32;
 const TITLE_GAP = 24;
 const PANEL_SHADOW = 6;
 const CARD_SHADOW = 2;
-const LOGO_AREA = 52;
-const LOGO_PAD = 4;
+const LOGO_AREA = BASE.logoArea;
+const LOGO_PAD = BASE.logoPad;
 const CARD_BORDER = 2;
 
 type Fonts = { display: string; body: string };
@@ -48,21 +49,20 @@ async function loadFonts(): Promise<Fonts> {
   return { display, body };
 }
 
-/** Loads a logo through app/api/logo/route.ts; null if it fails. */
-function loadLogo(logoUrl: string | null): Promise<HTMLImageElement | null> {
-  if (!logoUrl) return Promise.resolve(null);
+/**
+ * The trimmed logo (lib/logo-trim.ts, shared with the cards on the page);
+ * null if there is none or it fails, which draws the short name instead.
+ */
+async function loadLogo(logoUrl: string | null): Promise<HTMLImageElement | null> {
+  if (!logoUrl) return null;
+  const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 10000));
+  const trimmed = await Promise.race([getTrimmedLogo(logoUrl), timeout]);
+  if (!trimmed) return null;
   return new Promise((resolve) => {
     const image = new Image();
-    const timer = setTimeout(() => resolve(null), 10000);
-    image.onload = () => {
-      clearTimeout(timer);
-      resolve(image);
-    };
-    image.onerror = () => {
-      clearTimeout(timer);
-      resolve(null);
-    };
-    image.src = `/api/logo?url=${encodeURIComponent(logoUrl)}`;
+    image.onload = () => resolve(image);
+    image.onerror = () => resolve(null);
+    image.src = trimmed;
   });
 }
 
@@ -217,15 +217,11 @@ function drawCard(
   const nameTop = dividerY + ROW_BORDER;
   const nameHeight = y + height - CARD_BORDER - nameTop;
   context.fillStyle = COLORS.steel;
-  context.font = `600 11px ${fonts.body}`;
+  context.font = `600 ${BASE.nameFont}px ${fonts.body}`;
   context.textAlign = "center";
   context.textBaseline = "middle";
-  const lines = wrapText(context, team.name, innerWidth - 6, 2);
-  const lineHeight = 12.5;
-  const firstLineY = nameTop + nameHeight / 2 - ((lines.length - 1) * lineHeight) / 2;
-  lines.forEach((line, index) => {
-    context.fillText(line, innerX + innerWidth / 2, firstLineY + index * lineHeight);
-  });
+  const [name] = wrapText(context, team.name, innerWidth - 6, 1);
+  context.fillText(name, innerX + innerWidth / 2, nameTop + nameHeight / 2);
 }
 
 /** Draws the tier list and resolves with it as a PNG. */

@@ -4,9 +4,9 @@ import { supabase } from "@/lib/supabase";
 /**
  * GET /api/logo?url=<teams.logo_url>
  *
- * Serves a team logo from this site's own address. Logos live on many other
- * websites, and browsers refuse to turn those into an image (for "Copy
- * image") unless the image comes from the same site.
+ * Serves a team logo from this site's own address. Browsers only let a page
+ * read the pixels of same-site images, which lib/logo-trim.ts needs to trim
+ * empty margins and "Copy image" needs to draw the tier list.
  *
  * Only URLs that appear in `teams.logo_url` are fetched, so this cannot be
  * used to load arbitrary websites.
@@ -64,7 +64,9 @@ export async function GET(request: NextRequest) {
   return new Response(body, {
     headers: {
       "Content-Type": contentType,
-      "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
+      // Browsers and any CDN in front of the site keep it for a day.
+      "Cache-Control":
+        "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800",
       // Logos may be SVGs; stop any script inside one from running here.
       "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox",
       "X-Content-Type-Options": "nosniff",

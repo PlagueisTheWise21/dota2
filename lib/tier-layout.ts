@@ -22,6 +22,9 @@ export const BASE = {
   label: 64, // tier label column width
   cardWidth: 104,
   cardHeight: 82,
+  logoArea: 60, // height of the logo part of a card (the rest is the name)
+  logoPad: 2, // space around the logo inside its area
+  nameFont: 10, // team name font size
   gap: 6, // between cards
   pad: 6, // inside a tier row, around the cards
   rowMinHeight: 104,
