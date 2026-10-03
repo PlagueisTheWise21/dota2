@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { CopyTierListButton } from "@/components/CopyTierListButton";
+import { CopyImageButton } from "@/components/CopyImageButton";
 import { Panel } from "@/components/Panel";
 import {
   Predictions,
@@ -11,6 +11,8 @@ import {
 } from "@/components/Predictions";
 import { TierList, initialPlacements, type Placements } from "@/components/TierList";
 import type { EventDetails } from "@/lib/events";
+import { renderPredictionsPng } from "@/lib/prediction-image";
+import { renderTierListPng } from "@/lib/tier-image";
 
 const SECTIONS = [
   { id: "tier-list", label: "Tier List" },
@@ -39,8 +41,8 @@ export function EventView({ event }: EventViewProps) {
 
   return (
     <main className="flex h-dvh w-full flex-col items-center gap-[clamp(0.5rem,2dvh,1.25rem)] overflow-hidden px-4 py-[clamp(0.5rem,2.5dvh,1.5rem)] sm:px-8">
-      {/* Phones and tablets: title on top, back link and controls below.
-          Laptops and up: back link | title | controls on one row. */}
+      {/* Phones and tablets: title on top, home button and controls below.
+          Laptops and up: home button | title | controls on one row. */}
       <header className="grid w-full max-w-6xl grid-cols-[auto_1fr] items-center gap-x-4 gap-y-2 lg:grid-cols-[1fr_auto_1fr]">
         <Panel className="col-span-2 px-6 py-[clamp(0.3rem,1.2dvh,0.75rem)] text-center lg:col-span-1 lg:col-start-2 lg:row-start-1 lg:max-w-xl">
           <h1 className="font-display text-[clamp(1.2rem,min(3.2vw,5dvh),2.1rem)] leading-tight font-bold tracking-wide uppercase">
@@ -55,24 +57,38 @@ export function EventView({ event }: EventViewProps) {
 
         <Link
           href="/"
-          className="justify-self-start text-sm whitespace-nowrap text-paper/70 underline-offset-4 hover:text-paper hover:underline lg:col-start-1 lg:row-start-1"
+          aria-label="Home"
+          title="Home"
+          className="shadow-offset flex items-center gap-2 justify-self-start border-2 border-paper/60 bg-panel px-[clamp(0.6rem,1.5vw,0.9rem)] py-[calc(clamp(0.2rem,0.9dvh,0.45rem)+1px)] font-display text-[clamp(0.85rem,min(2vw,2.8dvh),1.15rem)] font-bold tracking-widest whitespace-nowrap text-paper uppercase transition-colors hover:border-paper lg:col-start-1 lg:row-start-1"
         >
-          &larr; Events
+          <HomeIcon />
+          <span className="hidden sm:inline">Home</span>
         </Link>
 
         <div className="flex items-stretch gap-3 justify-self-end lg:col-start-3 lg:row-start-1">
-          {section === "tier-list" && event.teams.length > 0 && (
-            <CopyTierListButton
-              eventName={event.name}
-              teams={event.teams}
-              placements={placements}
-            />
-          )}
+          {event.teams.length > 0 &&
+            (section === "tier-list" ? (
+              <CopyImageButton
+                what="tier list"
+                fileName={`${fileSlug(event.name)}-tier-list.png`}
+                render={() =>
+                  renderTierListPng(event.name, event.teams, placements)
+                }
+              />
+            ) : (
+              <CopyImageButton
+                what="predictions"
+                fileName={`${fileSlug(event.name)}-predictions.png`}
+                render={() =>
+                  renderPredictionsPng(event.name, event.teams, prediction)
+                }
+              />
+            ))}
 
           <div
             role="tablist"
             aria-label="Event sections"
-            className="shadow-offset flex border-[3px] border-black"
+            className="shadow-offset flex border-2 border-paper/60 bg-panel"
           >
             {SECTIONS.map((item) => {
               const selected = item.id === section;
@@ -85,10 +101,10 @@ export function EventView({ event }: EventViewProps) {
                   aria-selected={selected}
                   aria-controls={`panel-${item.id}`}
                   onClick={() => setSection(item.id)}
-                  className={`cursor-pointer px-[clamp(0.9rem,3vw,1.75rem)] py-[clamp(0.2rem,0.9dvh,0.45rem)] font-display text-[clamp(0.85rem,min(2vw,2.8dvh),1.15rem)] font-bold tracking-widest whitespace-nowrap uppercase transition not-last:border-r-[3px] not-last:border-black ${
+                  className={`cursor-pointer px-[clamp(0.9rem,3vw,1.75rem)] py-[calc(clamp(0.2rem,0.9dvh,0.45rem)+1px)] font-display text-[clamp(0.85rem,min(2vw,2.8dvh),1.15rem)] font-bold tracking-widest whitespace-nowrap uppercase transition-colors not-last:border-r not-last:border-paper/30 ${
                     selected
-                      ? "bg-paper text-steel"
-                      : "bg-panel text-paper/60 hover:text-paper"
+                      ? "bg-[#2a2a2a] text-paper shadow-[inset_0_-3px_0_0_#e8ecf1]"
+                      : "text-paper/50 hover:text-paper"
                   }`}
                 >
                   {item.label}
@@ -146,4 +162,29 @@ function formatDateRange(start: string, end: string): string {
     ? dayFormat.format(startDate)
     : fullFormat.format(startDate);
   return `${startText} – ${fullFormat.format(endDate)}`;
+}
+
+function HomeIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-[1.1em] w-[1.1em]"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.5}
+      strokeLinecap="square"
+    >
+      <path d="M3 11l9-7 9 7" />
+      <path d="M5 10v10h5v-6h4v6h5V10" />
+    </svg>
+  );
+}
+
+/** "Blast Slam VIII" -> "blast-slam-viii", for download file names. */
+function fileSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
 }

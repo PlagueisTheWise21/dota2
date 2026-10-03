@@ -6,13 +6,14 @@ type PanelProps = {
 };
 
 /**
- * The site's signature content box: light background, hard black border and
- * a solid offset shadow. Used for the welcome message and section headings.
+ * The site's title box: dark grey background, light outline, light text and
+ * a solid offset shadow. Used for the welcome message, section headings and
+ * the event name. lib/tier-image.ts draws the same look for the copied image.
  */
 export function Panel({ children, className = "" }: PanelProps) {
   return (
     <div
-      className={`shadow-offset border-[3px] border-black bg-paper text-steel ${className}`}
+      className={`shadow-offset border-2 border-paper/60 bg-panel text-paper ${className}`}
     >
       {children}
     </div>

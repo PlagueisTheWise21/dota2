@@ -55,8 +55,8 @@ function findDropTarget(x: number, y: number): DropTarget | null {
   return null;
 }
 
-/** Medal colours for the top three, like Liquipedia. */
-const PLACE_COLORS: Record<number, string> = {
+/** Medal colours for the top three, like Liquipedia (also lib/prediction-image.ts). */
+export const PLACE_COLORS: Record<number, string> = {
   0: "#d4a72c",
   1: "#a9b4bf",
   2: "#b5793f",

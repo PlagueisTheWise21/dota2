@@ -104,9 +104,12 @@ Do not over-engineer.
   - Tier list: S/A/B/C/F plus Unranked; all teams start in Unranked in seed order;
     mouse/touch drag between and within tiers; Escape cancels a drag. Not saved:
     a refresh resets it (saving needs a table and login; later phases).
-  - "Copy image" button (tier list only): `lib/tier-image.ts` draws the tier list
-    on a canvas (full card size, 760px board, event name as title) and copies it
-    to the clipboard as a PNG; browsers without clipboard images get a download.
+  - "Copy image" button on both sections (`components/CopyImageButton.tsx`):
+    copies a PNG to the clipboard; browsers without clipboard images get a
+    download. `lib/tier-image.ts` draws the tier list (full card size, 760px
+    board); `lib/prediction-image.ts` draws the placement table (560px, placed
+    teams only, empty slots dashed). Both have the event name as a title and
+    share helpers in `lib/image-common.ts`.
   - Predictions (`components/Predictions.tsx`, rough outline): a Liquipedia-style
     placement table (1, 2, 3, 4, 5–6, 7–8, 9–12, 13–16…, from `lib/placements.ts`)
     beside a box of unplaced teams; drag teams into slots, drop on a filled slot
@@ -121,8 +124,15 @@ Do not over-engineer.
   `teams.logo_url`. Some hosts refuse server requests (Fandom/Wikia did); such a
   logo shows untrimmed on the page and as its short name in copied images.
 - `lib/logo-trim.ts`: trims empty margins off logos in the browser (via the logo
-  route) and shrinks them to 256px, once per visit. Cards and the copied image
-  both use it. Team cards: logo area 60px of the 82px card, one-line name.
+  route) and shrinks them to 256px, once per visit (failures are retried on the
+  next request). Cards and the copied images all use it. Team cards: logo area 60px of the 82px card, one-line name.
+- Titles (`components/Panel.tsx`: welcome box, "Events" heading, event name, 404)
+  are dark: grey `bg-panel`, 2px light outline at 60%, light text, blue-grey
+  offset shadow. The owner prefers dark backgrounds with light text over the
+  original light content boxes. The event page has a Home button (house icon +
+  "Home", icon only on phones) in the same style instead of "← Events". The
+  Copy image button and the Tier List / Predictions switch match it; the
+  selected tab has a lighter background and a light bar along its bottom.
 - Team cards (tier list, its copied image) and team boxes (predictions) share
   one look, chosen by the owner: dark `#202020` box, 1px light outline at 60%
   (full on hover/drag), light text, thin light line between logo and name.
@@ -161,6 +171,10 @@ Do not over-engineer.
 - `events.slug`: add a unique constraint (Phase 2).
 - `events.status`: restrict to fixed values (Phase 2).
 - A table for saved tier lists (Phase 3).
+- Per-event placement groups (e.g. an `events.placement_groups` column such as
+  `[1,1,1,1,2,2,2]`), falling back to the automatic `lib/placements.ts` pattern;
+  could be filled from Liquipedia prize pool data (Phase 9). Owner chose to keep
+  the automatic pattern for now.
 
 ### Sensible next steps
 1. Owner reviews the event page and tier list.

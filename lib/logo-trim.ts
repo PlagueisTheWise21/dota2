@@ -4,8 +4,8 @@
  *
  * The logo is loaded through app/api/logo/route.ts (browsers only allow
  * reading the pixels of same-site images), cropped to the visible logo and
- * shrunk to at most OUTPUT_SIZE px. Results are remembered per URL for the
- * rest of the visit. Browser-only.
+ * shrunk to at most OUTPUT_SIZE px. Successful results are remembered per
+ * URL for the rest of the visit; failures are retried next time. Browser-only.
  */
 
 /** Largest side of a trimmed logo, in px (logos draw ~60px tall; 2x for sharp screens). */
@@ -29,7 +29,13 @@ export function getTrimmedLogo(logoUrl: string): Promise<string | null> {
     result = trimLogo(logoUrl)
       .catch(() => null)
       .then((trimmed) => {
-        finished.set(logoUrl, trimmed);
+        if (trimmed) {
+          finished.set(logoUrl, trimmed);
+        } else {
+          // Often a slow or busy logo host: let the next request try again
+          // instead of remembering the failure for the whole visit.
+          pending.delete(logoUrl);
+        }
         return trimmed;
       });
     pending.set(logoUrl, result);

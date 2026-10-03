@@ -13,7 +13,8 @@ import { supabase } from "@/lib/supabase";
  */
 
 const MAX_BYTES = 5 * 1024 * 1024;
-const FETCH_TIMEOUT_MS = 8000;
+/** Some logos are 2 MB and hosts can be slow when many load at once. */
+const FETCH_TIMEOUT_MS = 15000;
 
 export async function GET(request: NextRequest) {
   const url = request.nextUrl.searchParams.get("url");

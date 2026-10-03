@@ -1,9 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Placements } from "@/components/TierList";
-import type { EventTeam } from "@/lib/events";
-import { renderTierListPng } from "@/lib/tier-image";
 
 type Status = "idle" | "working" | "copied" | "downloaded" | "failed";
 
@@ -14,21 +11,20 @@ const STATUS_TEXT: Record<Exclude<Status, "idle">, string> = {
   failed: "Could not copy",
 };
 
-type CopyTierListButtonProps = {
-  eventName: string;
-  teams: EventTeam[];
-  placements: Placements;
+type CopyImageButtonProps = {
+  /** Draws the picture (lib/tier-image.ts, lib/prediction-image.ts). */
+  render: () => Promise<Blob>;
+  /** File name for the download fallback, e.g. "blast-slam-viii-tier-list.png". */
+  fileName: string;
+  /** What is copied, for screen readers and the tooltip, e.g. "tier list". */
+  what: string;
 };
 
 /**
- * Copies the tier list to the clipboard as a PNG (drawn by lib/tier-image.ts).
- * Browsers that cannot put images on the clipboard get a download instead.
+ * Copies a picture to the clipboard as a PNG. Browsers that cannot put
+ * images on the clipboard get a download instead.
  */
-export function CopyTierListButton({
-  eventName,
-  teams,
-  placements,
-}: CopyTierListButtonProps) {
+export function CopyImageButton({ render, fileName, what }: CopyImageButtonProps) {
   const [status, setStatus] = useState<Status>("idle");
 
   // Clear "Copied!" and the other messages after a moment.
@@ -44,7 +40,7 @@ export function CopyTierListButton({
 
     // Start drawing straight away: Safari only allows the clipboard write if
     // it begins during the click, so it is given the unfinished image.
-    const png = renderTierListPng(eventName, teams, placements);
+    const png = render();
 
     try {
       if (!navigator.clipboard?.write || typeof ClipboardItem === "undefined") {
@@ -54,10 +50,10 @@ export function CopyTierListButton({
       setStatus("copied");
     } catch {
       try {
-        downloadPng(await png, eventName);
+        downloadPng(await png, fileName);
         setStatus("downloaded");
       } catch (error) {
-        console.error("Tier list image failed:", error);
+        console.error(`Copying the ${what} as an image failed:`, error);
         setStatus("failed");
       }
     }
@@ -71,9 +67,9 @@ export function CopyTierListButton({
         type="button"
         onClick={handleClick}
         disabled={status === "working"}
-        aria-label="Copy tier list as image"
-        title="Copy tier list as image"
-        className="shadow-offset flex h-full cursor-pointer items-center gap-2 border-[3px] border-black bg-paper px-[clamp(0.5rem,1.5vw,0.9rem)] py-[clamp(0.2rem,0.9dvh,0.45rem)] font-display text-[clamp(0.85rem,min(2vw,2.8dvh),1.15rem)] font-bold tracking-widest whitespace-nowrap text-steel uppercase transition hover:brightness-110 disabled:cursor-wait disabled:opacity-70"
+        aria-label={`Copy ${what} as image`}
+        title={`Copy ${what} as image`}
+        className="shadow-offset flex h-full cursor-pointer items-center gap-2 border-2 border-paper/60 bg-panel px-[clamp(0.5rem,1.5vw,0.9rem)] py-[calc(clamp(0.2rem,0.9dvh,0.45rem)+1px)] font-display text-[clamp(0.85rem,min(2vw,2.8dvh),1.15rem)] font-bold tracking-widest whitespace-nowrap text-paper uppercase transition-colors hover:border-paper disabled:cursor-wait disabled:opacity-70"
       >
         {status === "copied" || status === "downloaded" ? <CheckIcon /> : <CopyIcon />}
         <span className="hidden lg:inline">Copy image</span>
@@ -89,11 +85,7 @@ export function CopyTierListButton({
   );
 }
 
-function downloadPng(blob: Blob, eventName: string) {
-  const fileName = `${eventName
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "")}-tier-list.png`;
+function downloadPng(blob: Blob, fileName: string) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
