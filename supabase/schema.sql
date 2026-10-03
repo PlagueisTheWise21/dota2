@@ -1,0 +1,3 @@
+-- Intentionally empty. Do NOT create tables from this file.
+-- The database already exists; its structure is documented in SCHEMA.md.
+-- This file can be deleted.

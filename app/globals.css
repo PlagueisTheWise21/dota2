@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+/* Site colours. Use them as bg-ink, bg-panel, bg-paper, text-steel, etc. */
+@theme {
+  --color-ink: #0b0b0b; /* page background */
+  --color-panel: #161616; /* dark grey panels */
+  --color-paper: #e8ecf1; /* light content boxes */
+  --color-steel: #2c3e55; /* blue-grey text on light boxes */
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-oswald);
+}
+
+html {
+  background: #0b0b0b;
+}
+
+body {
+  color: #e8ecf1;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Solid offset shadow used by light panels. */
+.shadow-offset {
+  box-shadow: 6px 6px 0 0 #4a607a;
+}
+
+/* ---------- Event carousel ---------- */
+
+.event-track {
+  --gap: 1.25rem;
+  --per-view: 1; /* banners visible at once */
+  --slide-max-height: 34dvh; /* keeps banners inside short viewports */
+
+  display: flex;
+  gap: var(--gap);
+  /* Padding leaves room for card shadows and the hover lift. */
+  padding: 0.75rem 0.5rem 1rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 0.5rem;
+  scrollbar-width: none;
+}
+
+.event-track::-webkit-scrollbar {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .event-track {
+    --per-view: 2;
+  }
+}
+
+@media (min-width: 1024px) {
+  .event-track {
+    --per-view: 3;
+  }
+}
+
+.event-slide {
+  flex: 0 0 auto;
+  width: min(
+    calc((100% - (var(--per-view) - 1) * var(--gap)) / var(--per-view)),
+    calc(var(--slide-max-height) * 16 / 9)
+  );
+  scroll-snap-align: start;
+}
+
+/* Centres the row when there are too few banners to fill it. */
+.event-slide:first-child {
+  margin-left: auto;
+}
+
+.event-slide:last-child {
+  margin-right: auto;
+}
+
+.event-card {
+  box-shadow: 5px 5px 0 0 rgb(0 0 0 / 0.9), 0 0 0 1px rgb(255 255 255 / 0.06);
+  transition:
+    transform 150ms ease-out,
+    filter 150ms ease-out;
+}
+
+.event-card:hover,
+.event-card:focus-visible {
+  transform: translateY(-3px) scale(1.02);
+  filter: brightness(1.12);
+}
+
+.event-card:focus-visible {
+  outline: 2px solid #e8ecf1;
+  outline-offset: 2px;
+}

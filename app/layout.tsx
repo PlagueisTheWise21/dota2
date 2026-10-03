@@ -1,0 +1,40 @@
+import type { Metadata } from "next";
+import { Geist, Geist_Mono, Oswald } from "next/font/google";
+import { SiteBackground } from "@/components/SiteBackground";
+import "./globals.css";
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+// Condensed display font for headings (use with the "font-display" class).
+const oswald = Oswald({
+  variable: "--font-oswald",
+  subsets: ["latin"],
+});
+
+export const metadata: Metadata = {
+  title: "Dota 2 Predictions & Tier Lists",
+  description:
+    "Browse Dota 2 esports events, rank the teams and predict the results.",
+};
+
+export default function RootLayout({ children }: LayoutProps<"/">) {
+  return (
+    <html
+      lang="en"
+      className={`${geistSans.variable} ${geistMono.variable} ${oswald.variable} h-full antialiased`}
+    >
+      <body className="flex min-h-full flex-col">
+        <SiteBackground />
+        {children}
+      </body>
+    </html>
+  );
+}
