@@ -107,7 +107,15 @@ Do not over-engineer.
   - "Copy image" button (tier list only): `lib/tier-image.ts` draws the tier list
     on a canvas (full card size, 760px board, event name as title) and copies it
     to the clipboard as a PNG; browsers without clipboard images get a download.
-  - Predictions: "coming soon" placeholder (Phase 4).
+  - Predictions (`components/Predictions.tsx`, rough outline): a Liquipedia-style
+    placement table (1, 2, 3, 4, 5–6, 7–8, 9–12, 13–16…, from `lib/placements.ts`)
+    beside a box of unplaced teams; drag teams into slots, drop on a filled slot
+    to swap, drag back to the box to remove. Shows `events.prediction_deadline`
+    but does not lock yet. Not saved; login will be optional.
+  - Dragging for both sections is shared in `components/useCardDrag.ts`; trimmed
+    team logos in `components/TeamLogo.tsx`.
+- The owner has a Liquipedia API key, for Phase 9. It must go in `.env.local`
+  without a `NEXT_PUBLIC_` prefix (server only) and never in code or chat.
 - `app/api/logo/route.ts`: serves a team logo from this site so the browser may
   read its pixels (for trimming and the copied image). Only fetches URLs found in
   `teams.logo_url`. Some hosts refuse server requests (Fandom/Wikia did); such a
@@ -115,6 +123,9 @@ Do not over-engineer.
 - `lib/logo-trim.ts`: trims empty margins off logos in the browser (via the logo
   route) and shrinks them to 256px, once per visit. Cards and the copied image
   both use it. Team cards: logo area 60px of the 82px card, one-line name.
+- Team cards (tier list, its copied image) and team boxes (predictions) share
+  one look, chosen by the owner: dark `#202020` box, 1px light outline at 60%
+  (full on hover/drag), light text, thin light line between logo and name.
 - The project lives on a D: drive whose file system does not support Windows
   junctions or file ownership. Git needs `safe.directory` for it, and the dev
   server crashes on native server packages such as `sharp`. Avoid those, or move

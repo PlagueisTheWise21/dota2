@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -10,13 +9,12 @@ import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
-import { FallbackImage } from "@/components/FallbackImage";
+import { TeamLogo } from "@/components/TeamLogo";
+import { useCardDrag } from "@/components/useCardDrag";
 import type { EventTeam } from "@/lib/events";
-import { getTrimmedLogo, peekTrimmedLogo } from "@/lib/logo-trim";
 import {
   BASE,
   BOX_BORDER,
-  ROW_BORDER,
   computeTierLayout,
   type TierLayout,
 } from "@/lib/tier-layout";
@@ -63,29 +61,11 @@ function moveTeam(
   return next;
 }
 
-/** Pointer travel (px) before a press becomes a drag. */
-const DRAG_THRESHOLD = 4;
-
 type DropTarget = {
   tier: TierId;
   index: number;
   /** Where to draw the insertion marker, in viewport px. */
   marker: { left: number; top: number; height: number };
-};
-
-type DragState = {
-  teamId: string;
-  pointerId: number;
-  startX: number;
-  startY: number;
-  /** Pointer position inside the card when the drag started. */
-  offsetX: number;
-  offsetY: number;
-  x: number;
-  y: number;
-  /** False until the pointer has moved past DRAG_THRESHOLD. */
-  active: boolean;
-  target: DropTarget | null;
 };
 
 /**
@@ -163,7 +143,6 @@ export function TierList({ teams, placements, onChange }: TierListProps) {
   const [size, setSize] = useState<{ width: number; height: number } | null>(
     null,
   );
-  const [drag, setDrag] = useState<DragState | null>(null);
 
   const teamsById = useMemo(
     () => new Map(teams.map((team) => [team.id, team])),
@@ -192,96 +171,11 @@ export function TierList({ teams, placements, onChange }: TierListProps) {
     : null;
   const scale = layout?.scale ?? 1;
 
-  // Latest drag state for the window listeners below (set only in handlers).
-  const dragRef = useRef<DragState | null>(null);
-
-  function updateDrag(next: DragState | null) {
-    dragRef.current = next;
-    setDrag(next);
-  }
-
-  // While a press or drag is in progress, follow the pointer window-wide.
-  const dragging = drag !== null;
-  useEffect(() => {
-    if (!dragging) return;
-
-    function update(next: DragState | null) {
-      dragRef.current = next;
-      setDrag(next);
-    }
-
-    function handleMove(event: PointerEvent) {
-      const current = dragRef.current;
-      if (!current || event.pointerId !== current.pointerId) return;
-      const moved = Math.hypot(
-        event.clientX - current.startX,
-        event.clientY - current.startY,
-      );
-      const active = current.active || moved > DRAG_THRESHOLD;
-      update({
-        ...current,
-        x: event.clientX,
-        y: event.clientY,
-        active,
-        target: active
-          ? findDropTarget(event.clientX, event.clientY, current.teamId, scale)
-          : null,
-      });
-    }
-
-    function handleUp(event: PointerEvent) {
-      const current = dragRef.current;
-      if (!current || event.pointerId !== current.pointerId) return;
-      if (current.active && current.target) {
-        onChange(
-          moveTeam(
-            placements,
-            current.teamId,
-            current.target.tier,
-            current.target.index,
-          ),
-        );
-      }
-      update(null);
-    }
-
-    function handleCancel() {
-      update(null);
-    }
-
-    function handleKey(event: KeyboardEvent) {
-      if (event.key === "Escape") update(null);
-    }
-
-    window.addEventListener("pointermove", handleMove);
-    window.addEventListener("pointerup", handleUp);
-    window.addEventListener("pointercancel", handleCancel);
-    window.addEventListener("keydown", handleKey);
-    return () => {
-      window.removeEventListener("pointermove", handleMove);
-      window.removeEventListener("pointerup", handleUp);
-      window.removeEventListener("pointercancel", handleCancel);
-      window.removeEventListener("keydown", handleKey);
-    };
-  }, [dragging, placements, onChange, scale]);
-
-  function startDrag(event: ReactPointerEvent<HTMLElement>, teamId: string) {
-    if (event.button !== 0) return;
-    event.preventDefault();
-    const rect = event.currentTarget.getBoundingClientRect();
-    updateDrag({
-      teamId,
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      offsetX: event.clientX - rect.left,
-      offsetY: event.clientY - rect.top,
-      x: event.clientX,
-      y: event.clientY,
-      active: false,
-      target: null,
-    });
-  }
+  const { drag, startDrag } = useCardDrag<DropTarget>({
+    findTarget: (x, y, teamId) => findDropTarget(x, y, teamId, scale),
+    onDrop: (teamId, target) =>
+      onChange(moveTeam(placements, teamId, target.tier, target.index)),
+  });
 
   if (teams.length === 0) {
     return (
@@ -291,15 +185,14 @@ export function TierList({ teams, placements, onChange }: TierListProps) {
     );
   }
 
-  const activeDrag = drag?.active ? drag : null;
-  const draggedTeam = activeDrag ? teamsById.get(activeDrag.teamId) : undefined;
+  const draggedTeam = drag ? teamsById.get(drag.teamId) : undefined;
 
   return (
     <div
       ref={containerRef}
       className={`flex h-full w-full justify-center select-none ${
         layout?.fits === false ? "overflow-y-auto" : "overflow-hidden"
-      } ${activeDrag ? "cursor-grabbing" : ""}`}
+      } ${drag ? "cursor-grabbing" : ""}`}
     >
       {layout && (
         <TierBoard
@@ -307,32 +200,28 @@ export function TierList({ teams, placements, onChange }: TierListProps) {
           placements={placements}
           scale={scale}
           width={layout.width}
-          targetTier={activeDrag?.target?.tier ?? null}
-          draggedId={activeDrag?.teamId ?? null}
+          draggedId={drag?.teamId ?? null}
           onCardPointerDown={startDrag}
         />
       )}
 
-      {activeDrag?.target && (
+      {drag?.target && (
         <div
           aria-hidden="true"
           className="pointer-events-none fixed z-40 w-[3px] -translate-x-1/2 bg-paper shadow-[0_0_6px_rgba(232,236,241,0.8)]"
           style={{
-            left: activeDrag.target.marker.left,
-            top: activeDrag.target.marker.top,
-            height: activeDrag.target.marker.height,
+            left: drag.target.marker.left,
+            top: drag.target.marker.top,
+            height: drag.target.marker.height,
           }}
         />
       )}
 
-      {activeDrag && draggedTeam && (
+      {drag && draggedTeam && (
         <div
           aria-hidden="true"
           className="pointer-events-none fixed z-50 rotate-2"
-          style={{
-            left: activeDrag.x - activeDrag.offsetX,
-            top: activeDrag.y - activeDrag.offsetY,
-          }}
+          style={{ left: drag.x - drag.offsetX, top: drag.y - drag.offsetY }}
         >
           <TierCard team={draggedTeam} scale={scale} lifted />
         </div>
@@ -347,8 +236,6 @@ type TierBoardProps = {
   scale: number;
   /** Board width in px. */
   width: number;
-  /** Row to highlight as the drop target while dragging. */
-  targetTier?: TierId | null;
   /** Team being dragged; its card is dimmed in place. */
   draggedId?: string | null;
   /** Called when a card is pressed, to start dragging it. */
@@ -367,14 +254,12 @@ function TierBoard({
   placements,
   scale,
   width,
-  targetTier = null,
   draggedId = null,
   onCardPointerDown,
 }: TierBoardProps) {
   const boxStyle: CSSProperties = { borderWidth: BOX_BORDER };
 
   function renderRow(tier: TierId, label: ReactNode, color: string) {
-    const isTarget = targetTier === tier;
     return (
       <div
         key={tier}
@@ -390,9 +275,7 @@ function TierBoard({
         </div>
         <ul
           data-cards
-          className={`flex min-w-0 flex-1 flex-wrap content-start transition-colors ${
-            isTarget ? "bg-white/10" : "bg-panel"
-          }`}
+          className="flex min-w-0 flex-1 flex-wrap content-start bg-panel"
           style={{ gap: BASE.gap * scale, padding: BASE.pad * scale }}
         >
           {placements[tier].map((teamId) => {
@@ -462,82 +345,38 @@ type TierCardProps = {
 };
 
 /**
- * The logo with its empty margins trimmed (lib/logo-trim.ts).
- * undefined while trimming; null if there is no logo or trimming failed.
- */
-function useTrimmedLogo(logoUrl: string | null): string | null | undefined {
-  const [loaded, setLoaded] = useState<{ url: string; trimmed: string | null } | null>(
-    null,
-  );
-
-  useEffect(() => {
-    if (!logoUrl || peekTrimmedLogo(logoUrl) !== undefined) return;
-    let cancelled = false;
-    getTrimmedLogo(logoUrl).then((trimmed) => {
-      if (!cancelled) setLoaded({ url: logoUrl, trimmed });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [logoUrl]);
-
-  if (!logoUrl) return null;
-  const ready = peekTrimmedLogo(logoUrl);
-  if (ready !== undefined) return ready;
-  return loaded?.url === logoUrl ? loaded.trimmed : undefined;
-}
-
-/**
  * A draggable team box: logo on top (most of the card), name underneath on
- * one line; the full name shows on hover.
+ * one line; the full name shows on hover. Dark box with a light outline and
+ * light text, matching the predictions board (lib/tier-image.ts draws the
+ * same look for "Copy image").
  */
 function TierCard({ team, scale, dimmed, lifted, onPointerDown }: TierCardProps) {
-  const fallbackLabel = team.short_name ?? team.name.slice(0, 3);
   const interactive = Boolean(onPointerDown);
-  const trimmedLogo = useTrimmedLogo(team.logo_url);
 
   return (
     <div
       onPointerDown={onPointerDown}
       title={team.name}
-      className={`flex flex-col overflow-hidden border-2 border-black bg-paper text-steel ${
+      className={`flex flex-col overflow-hidden border bg-[#202020] text-paper ${
         lifted
-          ? "shadow-[6px_6px_0_0_rgba(0,0,0,0.9)] brightness-110"
-          : "shadow-[2px_2px_0_0_#000]"
+          ? "border-paper shadow-[6px_6px_0_0_rgba(0,0,0,0.9)]"
+          : "border-paper/60 shadow-[2px_2px_0_0_#000]"
       } ${
-        interactive ? "cursor-grab touch-none transition hover:brightness-110" : ""
+        interactive ? "cursor-grab touch-none transition-colors hover:border-paper" : ""
       } ${dimmed ? "opacity-30" : ""}`}
       style={{ width: BASE.cardWidth * scale, height: BASE.cardHeight * scale }}
     >
       <div
-        className="flex shrink-0 items-center justify-center bg-[#1e1e1e]"
+        className="flex shrink-0 items-center justify-center"
         style={{ height: BASE.logoArea * scale, padding: BASE.logoPad * scale }}
       >
-        {/* Empty for a moment while the logo is trimmed. If trimming fails,
-            show the original logo, then the short name if that fails too. */}
-        {trimmedLogo !== undefined && (
-          <FallbackImage
-            src={trimmedLogo ?? team.logo_url}
-            retrySrc={team.logo_url}
-            alt=""
-            className="h-full w-full object-contain"
-            fallback={
-              <span
-                className="font-display font-bold tracking-wide text-paper uppercase"
-                style={{ fontSize: 18 * scale }}
-              >
-                {fallbackLabel}
-              </span>
-            }
-          />
-        )}
+        <TeamLogo team={team} fallbackStyle={{ fontSize: 18 * scale }} />
       </div>
       <p
-        className="flex min-h-0 flex-1 items-center justify-center leading-none font-semibold"
+        className="flex min-h-0 flex-1 items-center justify-center border-t border-paper/30 leading-none font-semibold"
         style={{
           fontSize: Math.max(8, BASE.nameFont * scale),
           paddingInline: 3 * scale,
-          borderTop: `${ROW_BORDER}px solid #000`,
         }}
       >
         <span className="min-w-0 truncate">{team.name}</span>

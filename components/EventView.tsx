@@ -4,6 +4,11 @@ import Link from "next/link";
 import { useState } from "react";
 import { CopyTierListButton } from "@/components/CopyTierListButton";
 import { Panel } from "@/components/Panel";
+import {
+  Predictions,
+  emptyPrediction,
+  type PredictionSlots,
+} from "@/components/Predictions";
 import { TierList, initialPlacements, type Placements } from "@/components/TierList";
 import type { EventDetails } from "@/lib/events";
 
@@ -20,13 +25,16 @@ type EventViewProps = {
 
 /**
  * The event page: title, then a switch between the tier list and
- * predictions. Switching happens in the page, with no navigation, and the
- * tier list keeps its state while predictions are shown.
+ * predictions. Switching happens in the page, with no navigation, and both
+ * keep their state while the other is shown. Neither is saved yet.
  */
 export function EventView({ event }: EventViewProps) {
   const [section, setSection] = useState<SectionId>("tier-list");
   const [placements, setPlacements] = useState<Placements>(() =>
     initialPlacements(event.teams),
+  );
+  const [prediction, setPrediction] = useState<PredictionSlots>(() =>
+    emptyPrediction(event.teams),
   );
 
   return (
@@ -104,14 +112,12 @@ export function EventView({ event }: EventViewProps) {
             onChange={setPlacements}
           />
         ) : (
-          <Panel className="max-w-xl self-start px-8 py-6 text-center">
-            <h2 className="font-display text-2xl font-bold tracking-wide uppercase">
-              Predictions
-            </h2>
-            <p className="mt-2">
-              Predicting the final standings for {event.name} is coming soon.
-            </p>
-          </Panel>
+          <Predictions
+            teams={event.teams}
+            slots={prediction}
+            onChange={setPrediction}
+            deadline={event.prediction_deadline}
+          />
         )}
       </section>
     </main>

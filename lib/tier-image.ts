@@ -18,7 +18,9 @@ const COLORS = {
   paper: "#e8ecf1",
   steel: "#2c3e55",
   shadow: "#4a607a",
-  logoBack: "#1e1e1e",
+  card: "#202020",
+  cardOutline: "rgba(232, 236, 241, 0.6)",
+  cardDivider: "rgba(232, 236, 241, 0.3)",
   unrankedLabel: "#2a2a2a",
   black: "#000000",
 };
@@ -29,7 +31,7 @@ const PANEL_SHADOW = 6;
 const CARD_SHADOW = 2;
 const LOGO_AREA = BASE.logoArea;
 const LOGO_PAD = BASE.logoPad;
-const CARD_BORDER = 2;
+const CARD_BORDER = 1;
 
 type Fonts = { display: string; body: string };
 
@@ -171,18 +173,25 @@ function drawCard(
 ) {
   const width = BASE.cardWidth;
   const height = BASE.cardHeight;
-  drawBox(context, x, y, width, height, {
-    fill: COLORS.paper,
-    border: CARD_BORDER,
-    shadow: { offset: CARD_SHADOW, color: COLORS.black },
-  });
+
+  // Dark box, solid offset shadow, thin light outline (as on the page).
+  context.fillStyle = COLORS.black;
+  context.fillRect(x + CARD_SHADOW, y + CARD_SHADOW, width, height);
+  context.fillStyle = COLORS.card;
+  context.fillRect(x, y, width, height);
+  context.strokeStyle = COLORS.cardOutline;
+  context.lineWidth = CARD_BORDER;
+  context.strokeRect(
+    x + CARD_BORDER / 2,
+    y + CARD_BORDER / 2,
+    width - CARD_BORDER,
+    height - CARD_BORDER,
+  );
 
   // Logo area.
   const innerX = x + CARD_BORDER;
   const innerY = y + CARD_BORDER;
   const innerWidth = width - 2 * CARD_BORDER;
-  context.fillStyle = COLORS.logoBack;
-  context.fillRect(innerX, innerY, innerWidth, LOGO_AREA);
 
   const boxWidth = innerWidth - 2 * LOGO_PAD;
   const boxHeight = LOGO_AREA - 2 * LOGO_PAD;
@@ -211,12 +220,12 @@ function drawCard(
 
   // Divider and name.
   const dividerY = innerY + LOGO_AREA;
-  context.fillStyle = COLORS.black;
-  context.fillRect(innerX, dividerY, innerWidth, ROW_BORDER);
+  context.fillStyle = COLORS.cardDivider;
+  context.fillRect(innerX, dividerY, innerWidth, CARD_BORDER);
 
-  const nameTop = dividerY + ROW_BORDER;
+  const nameTop = dividerY + CARD_BORDER;
   const nameHeight = y + height - CARD_BORDER - nameTop;
-  context.fillStyle = COLORS.steel;
+  context.fillStyle = COLORS.paper;
   context.font = `600 ${BASE.nameFont}px ${fonts.body}`;
   context.textAlign = "center";
   context.textBaseline = "middle";
