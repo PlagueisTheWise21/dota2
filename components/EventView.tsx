@@ -7,7 +7,8 @@ import { Panel } from "@/components/Panel";
 import { Pickems, initialPickemState, type PickemState } from "@/components/Pickems";
 import { TierList, initialPlacements, type Placements } from "@/components/TierList";
 import type { EventDetails } from "@/lib/events";
-import type { PickemData } from "@/lib/pickems";
+import { renderBracketPng, renderGroupPickemPng } from "@/lib/pickem-image";
+import { swissGroups, type PickemData } from "@/lib/pickems";
 import { renderTierListPng } from "@/lib/tier-image";
 
 const SECTIONS = [
@@ -71,6 +72,37 @@ export function EventView({ event, pickemData }: EventViewProps) {
               render={() => renderTierListPng(event.name, event.teams, placements)}
             />
           )}
+          {section === "pickems" &&
+            pickems.section === "group" &&
+            pickemData.groupTeamIds.length > 0 && (
+              <CopyImageButton
+                what="group stage pick'em"
+                fileName={`${fileSlug(event.name)}-pickem-group-stage.png`}
+                render={() => {
+                  const groupTeams = event.teams.filter((team) =>
+                    pickemData.groupTeamIds.includes(team.id),
+                  );
+                  return renderGroupPickemPng(
+                    event.name,
+                    groupTeams,
+                    swissGroups(groupTeams.length),
+                    pickems.groupSlots,
+                    pickemData.groupRecords,
+                  );
+                }}
+              />
+            )}
+          {section === "pickems" &&
+            pickems.section === "playoffs" &&
+            pickemData.bracket.length > 0 && (
+              <CopyImageButton
+                what="playoff pick'em"
+                fileName={`${fileSlug(event.name)}-pickem-playoffs.png`}
+                render={() =>
+                  renderBracketPng(event.name, event.teams, pickemData.bracket, pickems.bracketPicks)
+                }
+              />
+            )}
 
           <div
             role="tablist"

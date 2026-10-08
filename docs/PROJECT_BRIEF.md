@@ -104,10 +104,12 @@ Do not over-engineer.
   - Tier list: S/A/B/C/F plus Unranked; all teams start in Unranked in seed order;
     mouse/touch drag between and within tiers; Escape cancels a drag. Not saved:
     a refresh resets it (saving needs a table and login; later phases).
-  - "Copy image" button (tier list only; `components/CopyImageButton.tsx`):
-    copies a PNG to the clipboard; browsers without clipboard images get a
-    download. `lib/tier-image.ts` draws it (full card size, 760px board),
-    with helpers in `lib/image-common.ts`.
+  - "Copy image" button (`components/CopyImageButton.tsx`) on the tier list
+    and on both pick'em sections: copies a PNG to the clipboard; browsers
+    without clipboard images get a download. `lib/tier-image.ts` draws the tier
+    list (full card size, 760px board); `lib/pickem-image.ts` draws the group
+    stage picks or the playoff bracket (with ✓/✗ and champion). Shared helpers
+    in `lib/image-common.ts`.
   - Pick'em (`components/Pickems.tsx`; replaced the finishing-order
     Predictions tab on the owner's request), with two sections:
     - Group Stage (Swiss, CS-major style): pick 2 teams to go 3–0, 6 to advance
@@ -197,6 +199,17 @@ Do not over-engineer.
   Supabase dashboard. Old admin policies and `is_admin()` were removed.
 - New tables need both a grant and an RLS policy, or queries fail with
   "permission denied for table ...".
+
+### Owner wants later (requested 8 October 2026; not started)
+- Pick'em leaderboards: score everyone's group stage and playoff picks
+  against the real results (`group_standings`, `matches`) and rank users per
+  event, and possibly overall. Needs saved pick'ems first.
+- Twitch sign-in (Supabase Auth, Phase 7), so tier lists and pick'ems can be
+  saved and appear on leaderboards. Before building: check the old sign-up
+  trigger on `auth.users` (see "Not yet verified"), add the live domain to
+  Supabase's allowed redirect URLs, and register the Twitch app's callback.
+- Both need new tables (saved tier lists, saved pick'ems, profiles), to be
+  designed with the owner first.
 
 ### Suggested later (not agreed yet)
 - `events.slug`: add a unique constraint (Phase 2).
