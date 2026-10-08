@@ -2,8 +2,9 @@
  * Trims empty margins from team logos in the browser, so each logo fills
  * its box on the tier list cards and in the copied image.
  *
- * The logo is loaded through app/api/logo/route.ts (browsers only allow
- * reading the pixels of same-site images), cropped to the visible logo and
+ * The logo is loaded straight from this project's Supabase Storage, or else
+ * through app/api/logo/route.ts (browsers only allow reading the pixels of
+ * images whose site permits it), cropped to the visible logo and
  * shrunk to at most OUTPUT_SIZE px. Successful results are remembered per
  * URL for the rest of the visit; failures are retried next time. Browser-only.
  */
@@ -48,17 +49,41 @@ export function peekTrimmedLogo(logoUrl: string): string | null | undefined {
   return finished.get(logoUrl);
 }
 
-function loadImage(src: string): Promise<HTMLImageElement> {
+function loadImage(src: string, crossOrigin = false): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image();
+    // Asks the other site for permission to read the pixels.
+    if (crossOrigin) image.crossOrigin = "anonymous";
     image.onload = () => resolve(image);
     image.onerror = () => reject(new Error(`Could not load ${src}`));
     image.src = src;
   });
 }
 
+/**
+ * Small copies in this project's Supabase Storage (made by `npm run logos`)
+ * load straight from Supabase, which allows its public files to be read by
+ * other sites. Everything else goes through app/api/logo/route.ts.
+ */
+function isOwnStorageUrl(logoUrl: string): boolean {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  return Boolean(
+    supabaseUrl && logoUrl.startsWith(`${supabaseUrl}/storage/v1/object/public/`),
+  );
+}
+
+async function loadLogoImage(logoUrl: string): Promise<HTMLImageElement> {
+  const viaRoute = `/api/logo?url=${encodeURIComponent(logoUrl)}`;
+  if (!isOwnStorageUrl(logoUrl)) return loadImage(viaRoute);
+  try {
+    return await loadImage(logoUrl, true);
+  } catch {
+    return loadImage(viaRoute);
+  }
+}
+
 async function trimLogo(logoUrl: string): Promise<string | null> {
-  const image = await loadImage(`/api/logo?url=${encodeURIComponent(logoUrl)}`);
+  const image = await loadLogoImage(logoUrl);
   const { naturalWidth: width, naturalHeight: height } = image;
   if (!width || !height) return null;
 

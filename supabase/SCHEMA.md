@@ -59,3 +59,8 @@ All `id` columns are `uuid` with default `gen_random_uuid()`.
   Teams are ordered by `seed` (unseeded last, then by name); the seed is not displayed.
 - Logo route (`app/api/logo/route.ts`): `teams.logo_url`, to check a requested URL
   is a real team logo before fetching it.
+
+## Storage
+| Bucket | Public | Holds |
+|---|---|---|
+| team-logos | yes (planned; create in the dashboard) | small trimmed team logos made by `npm run logos`; `teams.logo_url` points at them |

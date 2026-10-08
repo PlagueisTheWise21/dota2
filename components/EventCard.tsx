@@ -18,10 +18,12 @@ export function EventCard({ event }: EventCardProps) {
       aria-label={event.name}
       className="event-card group relative block aspect-video w-full cursor-pointer overflow-hidden border-2 border-black bg-panel"
     >
+      {/* object-contain: the whole image always shows. 16:9 banners fill the
+          card exactly; wider or taller ones sit on the dark card background. */}
       <FallbackImage
         src={event.image_url}
         alt={event.name}
-        className="h-full w-full object-cover"
+        className="h-full w-full object-contain"
         fallback={
           <span className="flex h-full w-full items-center justify-center border border-white/10 p-4 text-center font-display text-[clamp(1rem,2.2vw,1.75rem)] leading-tight font-bold tracking-wide text-paper uppercase">
             {event.name}

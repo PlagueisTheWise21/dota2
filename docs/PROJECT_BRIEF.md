@@ -126,6 +126,14 @@ Do not over-engineer.
 - `lib/logo-trim.ts`: trims empty margins off logos in the browser (via the logo
   route) and shrinks them to 256px, once per visit (failures are retried on the
   next request). Cards and the copied images all use it. Team cards: logo area 60px of the 82px card, one-line name.
+- Fast team logos: `npm run logos` (`scripts/shrink-logos.mjs`, uses sharp as a
+  dev-only tool) downloads team logos, trims them, shrinks them to 256px WebP in
+  `logos-out/` (git-ignored) and writes `update-logos.sql`. The owner uploads the
+  files to the public Supabase Storage bucket `team-logos` and runs the SQL.
+  By default it only does teams whose logo is not in the bucket yet (`-- --all`
+  for every team). Logos in that bucket load straight from Supabase; others go
+  through the logo route. New teams work right away with any URL (slower) until
+  this is run. A Phase 8 admin upload could automate it.
 - Titles (`components/Panel.tsx`: welcome box, "Events" heading, event name, 404)
   are dark: grey `bg-panel`, 2px light outline at 60%, light text, blue-grey
   offset shadow. The owner prefers dark backgrounds with light text over the

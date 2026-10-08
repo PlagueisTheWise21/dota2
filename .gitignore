@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# small team logos made by `npm run logos` (uploaded to Supabase, not committed)
+/logos-out/
