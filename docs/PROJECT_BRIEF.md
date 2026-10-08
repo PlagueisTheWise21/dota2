@@ -100,23 +100,46 @@ Do not over-engineer.
 - `app/page.tsx`, `app/layout.tsx`, `app/globals.css`: homepage, fonts (Geist + Oswald
   as `font-display`), colour tokens (`ink`, `panel`, `paper`, `steel`), carousel CSS.
 - `app/events/[id]/page.tsx`: event page. Header (name, dates, status, back link) and
-  an in-page switch between Tier List and Predictions (no navigation).
+  an in-page switch between Tier List and Pick'em (no navigation).
   - Tier list: S/A/B/C/F plus Unranked; all teams start in Unranked in seed order;
     mouse/touch drag between and within tiers; Escape cancels a drag. Not saved:
     a refresh resets it (saving needs a table and login; later phases).
-  - "Copy image" button on both sections (`components/CopyImageButton.tsx`):
+  - "Copy image" button (tier list only; `components/CopyImageButton.tsx`):
     copies a PNG to the clipboard; browsers without clipboard images get a
-    download. `lib/tier-image.ts` draws the tier list (full card size, 760px
-    board); `lib/prediction-image.ts` draws the placement table (560px, placed
-    teams only, empty slots dashed). Both have the event name as a title and
-    share helpers in `lib/image-common.ts`.
-  - Predictions (`components/Predictions.tsx`, rough outline): a Liquipedia-style
-    placement table (1, 2, 3, 4, 5–6, 7–8, 9–12, 13–16…, from `lib/placements.ts`)
-    beside a box of unplaced teams; drag teams into slots, drop on a filled slot
-    to swap, drag back to the box to remove. Shows `events.prediction_deadline`
-    but does not lock yet. Not saved; login will be optional.
-  - Dragging for both sections is shared in `components/useCardDrag.ts`; trimmed
-    team logos in `components/TeamLogo.tsx`.
+    download. `lib/tier-image.ts` draws it (full card size, 760px board),
+    with helpers in `lib/image-common.ts`.
+  - Pick'em (`components/Pickems.tsx`; replaced the finishing-order
+    Predictions tab on the owner's request), with two sections:
+    - Group Stage (Swiss, CS-major style): pick 2 teams to go 3–0, 6 to advance
+      (3–1/3–2) and 2 to go 0–3 (`components/SlotBoard.tsx`, sizes from
+      `lib/pickems.ts`). Once the group stage is over, picks are marked right
+      or wrong against `group_standings`.
+    - Playoffs: double-elimination bracket from `matches`; click a team to pick
+      each winner; picks fill later rounds, losers drop via `loser_to`, and
+      picks made impossible by a change are cleared. Finished matches show
+      ✓/✗; "Your champion" from the grand final pick.
+    - Data from `lib/pickem-data.ts`; events without Liquipedia data show a
+      message. Credits Liquipedia (CC BY-SA 3.0), which the licence requires.
+      Not saved yet.
+  - Dragging is shared in `components/useCardDrag.ts`; trimmed team logos in
+    `components/TeamLogo.tsx`; team boxes in `components/TeamChip.tsx`.
+- Liquipedia sync (agreed 8 October 2026): `npm run sync -- <page>`
+  (`scripts/sync-liquipedia.mjs`) makes 4 API requests (limit 60/hour) and
+  writes events, teams (matched by `liquipedia_template`, then name/short name;
+  new teams get no logo), `event_teams`, `matches` (with bracket links),
+  `group_standings` and `event_placements`. `--dry-run` shows changes without
+  writing; `--cached` reuses `liquipedia-cache/` (git-ignored); `--event <id>`
+  links an existing event. Uses `SUPABASE_SERVICE_ROLE_KEY` (server only, in
+  `.env.local`). Tables: `supabase/migrations/20261008_liquipedia.sql`; the
+  service role's default grants were restored in `20261008b_service_role_grants.sql`.
+  Synced so far: PGL Wallachia Season 9 (finished; Swiss + 8-team double elim).
+  Pending: PARI Universe (`PARI_Universe/1`, 22 Oct to 1 Nov 2026): two
+  round-robin groups of 5 (top 4 advance), then the same 8-team double elim.
+  Owner is waiting for the last qualifier. Plan agreed in principle: add
+  `events.group_format` and `group_standings.group_index` (needs approval),
+  an "order each group" pick'em for round-robin, an "unsupported format"
+  message for others, and sync with `--event <id>` to link the owner's
+  existing PARI Universe event instead of creating a duplicate.
 - The owner has a Liquipedia API key, for Phase 9. It must go in `.env.local`
   without a `NEXT_PUBLIC_` prefix (server only) and never in code or chat.
 - `app/api/logo/route.ts`: serves a team logo from this site so the browser may
@@ -179,10 +202,8 @@ Do not over-engineer.
 - `events.slug`: add a unique constraint (Phase 2).
 - `events.status`: restrict to fixed values (Phase 2).
 - A table for saved tier lists (Phase 3).
-- Per-event placement groups (e.g. an `events.placement_groups` column such as
-  `[1,1,1,1,2,2,2]`), falling back to the automatic `lib/placements.ts` pattern;
-  could be filled from Liquipedia prize pool data (Phase 9). Owner chose to keep
-  the automatic pattern for now.
+- Real placement groups now come from Liquipedia into `event_placements` (e.g.
+  9–11); useful for scoring if finishing-order predictions return.
 
 ### Sensible next steps
 1. Owner reviews the event page and tier list.

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EventView } from "@/components/EventView";
 import { getEvent } from "@/lib/events";
+import { getPickemData } from "@/lib/pickem-data";
 
 // Always read the event from Supabase on request, so dashboard edits show up
 // without rebuilding the site.
@@ -37,5 +38,6 @@ export default async function EventPage({ params }: PageProps<"/events/[id]">) {
     notFound();
   }
 
-  return <EventView event={event} />;
+  const pickemData = await getPickemData(event.id);
+  return <EventView event={event} pickemData={pickemData} />;
 }

@@ -3,7 +3,7 @@
 Snapshot of the `public` schema, taken 3 October 2026 from the live database.
 Update this file whenever a table or column changes.
 
-The database contains only these three tables. The prediction, results, scores and
+The database has the three core tables below plus the Liquipedia tables further down. The prediction, results, scores and
 profiles tables were dropped on 3 October 2026 and will be redesigned when those
 features are built.
 
@@ -51,6 +51,44 @@ All `id` columns are `uuid` with default `gen_random_uuid()`.
 | event_id | uuid | no | FK -> events, unique with team_id |
 | team_id | uuid | no | FK -> teams |
 | seed | smallint | yes | |
+
+## Liquipedia tables (agreed 8 October 2026)
+Created by `supabase/migrations/20261008_liquipedia.sql` (run in the SQL editor).
+Filled by `npm run sync -- <Liquipedia page>` with the service role key; the site
+only reads them. Readable by everyone (select grant + policy), no API writes.
+
+New columns:
+- `events.liquipedia_page` (text, unique): e.g. `PGL/Wallachia/9`.
+- `teams.liquipedia_template` (text, unique): e.g. `xtreme gaming orig`.
+
+### matches
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid | primary key |
+| event_id | uuid | FK -> events, cascade delete |
+| liquipedia_id | text | unique, Liquipedia match2id |
+| stage | text | 'group' or 'playoffs' |
+| section | text | 'Round 1', 'Playoffs' |
+| bracket_section | text | 'upper', 'lower' or null |
+| round | smallint | |
+| match_number | smallint | order within the round |
+| team1_id, team2_id | uuid | FK -> teams, null while TBD |
+| score1, score2 | smallint | null until played |
+| winner | smallint | 1, 2 or null |
+| best_of | smallint | |
+| starts_at | timestamptz | |
+| finished | boolean | default false |
+| winner_to, winner_to_slot | text, smallint | next match (liquipedia_id) and slot 1/2 |
+| loser_to, loser_to_slot | text, smallint | lower-bracket drop; derived by the sync (rule checked against results) |
+| updated_at | timestamptz | |
+
+### group_standings
+`id`, `event_id` (FK), `team_id` (FK), `round`, `placement`, `wins`, `losses`,
+`draws`, `status` (Liquipedia: 'up', 'down', ...). Unique (event_id, team_id, round).
+
+### event_placements
+`id`, `event_id` (FK), `team_id` (FK), `place_from`, `place_to`, `prize_money`.
+Unique (event_id, team_id). Real placement groups, e.g. 9-11.
 
 ## What the code reads today
 - Homepage (`lib/events.ts`, `getEvents`): `events.id`, `events.name`, `events.image_url`, ordered by `events.start_date`.

@@ -4,39 +4,37 @@ import Link from "next/link";
 import { useState } from "react";
 import { CopyImageButton } from "@/components/CopyImageButton";
 import { Panel } from "@/components/Panel";
-import {
-  Predictions,
-  emptyPrediction,
-  type PredictionSlots,
-} from "@/components/Predictions";
+import { Pickems, initialPickemState, type PickemState } from "@/components/Pickems";
 import { TierList, initialPlacements, type Placements } from "@/components/TierList";
 import type { EventDetails } from "@/lib/events";
-import { renderPredictionsPng } from "@/lib/prediction-image";
+import type { PickemData } from "@/lib/pickems";
 import { renderTierListPng } from "@/lib/tier-image";
 
 const SECTIONS = [
   { id: "tier-list", label: "Tier List" },
-  { id: "predictions", label: "Predictions" },
+  { id: "pickems", label: "Pick'em" },
 ] as const;
 
 type SectionId = (typeof SECTIONS)[number]["id"];
 
 type EventViewProps = {
   event: EventDetails;
+  /** Group stage and bracket from Liquipedia (lib/pickem-data.ts). */
+  pickemData: PickemData;
 };
 
 /**
- * The event page: title, then a switch between the tier list and
- * predictions. Switching happens in the page, with no navigation, and both
- * keep their state while the other is shown. Neither is saved yet.
+ * The event page: title, then a switch between the tier list and the
+ * pick'em. Switching happens in the page, with no navigation, and both keep
+ * their state while the other is shown. Neither is saved yet.
  */
-export function EventView({ event }: EventViewProps) {
+export function EventView({ event, pickemData }: EventViewProps) {
   const [section, setSection] = useState<SectionId>("tier-list");
   const [placements, setPlacements] = useState<Placements>(() =>
     initialPlacements(event.teams),
   );
-  const [prediction, setPrediction] = useState<PredictionSlots>(() =>
-    emptyPrediction(event.teams),
+  const [pickems, setPickems] = useState<PickemState>(() =>
+    initialPickemState(pickemData),
   );
 
   return (
@@ -66,24 +64,13 @@ export function EventView({ event }: EventViewProps) {
         </Link>
 
         <div className="flex items-stretch gap-3 justify-self-end lg:col-start-3 lg:row-start-1">
-          {event.teams.length > 0 &&
-            (section === "tier-list" ? (
-              <CopyImageButton
-                what="tier list"
-                fileName={`${fileSlug(event.name)}-tier-list.png`}
-                render={() =>
-                  renderTierListPng(event.name, event.teams, placements)
-                }
-              />
-            ) : (
-              <CopyImageButton
-                what="predictions"
-                fileName={`${fileSlug(event.name)}-predictions.png`}
-                render={() =>
-                  renderPredictionsPng(event.name, event.teams, prediction)
-                }
-              />
-            ))}
+          {event.teams.length > 0 && section === "tier-list" && (
+            <CopyImageButton
+              what="tier list"
+              fileName={`${fileSlug(event.name)}-tier-list.png`}
+              render={() => renderTierListPng(event.name, event.teams, placements)}
+            />
+          )}
 
           <div
             role="tablist"
@@ -128,11 +115,11 @@ export function EventView({ event }: EventViewProps) {
             onChange={setPlacements}
           />
         ) : (
-          <Predictions
-            teams={event.teams}
-            slots={prediction}
-            onChange={setPrediction}
-            deadline={event.prediction_deadline}
+          <Pickems
+            event={event}
+            data={pickemData}
+            state={pickems}
+            onChange={setPickems}
           />
         )}
       </section>

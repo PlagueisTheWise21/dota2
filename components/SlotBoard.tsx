@@ -1,24 +1,23 @@
 "use client";
 
-import {
-  useMemo,
-  type PointerEvent as ReactPointerEvent,
-  type ReactNode,
-} from "react";
-import { TeamLogo } from "@/components/TeamLogo";
+import { useMemo, type ReactNode } from "react";
+import { TeamChip, type PickResult } from "@/components/TeamChip";
 import { useCardDrag } from "@/components/useCardDrag";
 import type { EventTeam } from "@/lib/events";
-import { placementGroups } from "@/lib/placements";
 
-/**
- * Team id in each final-standings slot (index 0 = 1st place), or null for
- * an empty slot. One slot per team in the event.
- */
-export type PredictionSlots = (string | null)[];
+/** Team id in each slot, or null for an empty slot. */
+export type Slots = (string | null)[];
 
-export function emptyPrediction(teams: EventTeam[]): PredictionSlots {
-  return teams.map(() => null);
-}
+export type SlotGroup = {
+  /** "3–0", "Advance" */
+  label: string;
+  /** Second label line, e.g. "3–1 / 3–2". */
+  sublabel?: string;
+  /** Number of slots in the group. */
+  size: number;
+  /** Label background; dark grey when left out. */
+  color?: string;
+};
 
 type DropTarget = { kind: "slot"; index: number } | { kind: "pool" };
 
@@ -27,11 +26,7 @@ type DropTarget = { kind: "slot"; index: number } | { kind: "pool" };
  * swaps: the team already there moves to where the dragged team came from
  * (the pool, if it came from there).
  */
-function dropTeam(
-  slots: PredictionSlots,
-  teamId: string,
-  target: DropTarget,
-): PredictionSlots {
+function dropTeam(slots: Slots, teamId: string, target: DropTarget): Slots {
   const next = [...slots];
   const from = next.indexOf(teamId); // -1 when coming from the pool
 
@@ -55,13 +50,6 @@ function findDropTarget(x: number, y: number): DropTarget | null {
   return null;
 }
 
-/** Medal colours for the top three, like Liquipedia (also lib/prediction-image.ts). */
-export const PLACE_COLORS: Record<number, string> = {
-  0: "#d4a72c",
-  1: "#a9b4bf",
-  2: "#b5793f",
-};
-
 /** Height of the header row, in px. */
 const HEADER_HEIGHT = 30;
 /** Tallest a row gets on big screens, in px. */
@@ -69,57 +57,71 @@ const MAX_ROW_HEIGHT = 40;
 /** Rows never get shorter than this; below it the board scrolls. */
 const MIN_ROW_HEIGHT = 20;
 
-type PredictionsProps = {
+type SlotBoardProps = {
   teams: EventTeam[];
-  slots: PredictionSlots;
-  onChange: (slots: PredictionSlots) => void;
-  /** events.prediction_deadline (shown only; nothing is locked yet). */
-  deadline: string;
+  groups: SlotGroup[];
+  slots: Slots;
+  onChange: (slots: Slots) => void;
+  /** Header of the slot column, e.g. "Pick". */
+  slotsTitle: string;
+  /** Right or wrong for a filled slot, once the real result is known. */
+  resultFor?: (index: number, teamId: string) => PickResult | null;
+  /** Small text at the bottom of the teams box. */
+  footer?: ReactNode;
 };
 
 /**
- * Final-standings prediction board in the style of Liquipedia's placement
- * table: placement groups (1, 2, 3, 4, 5–6, 7–8, 9–12…) on the left, the
- * teams still to place on the right. Teams are dragged into slots.
- * Not saved yet.
+ * Drag-and-drop board: labelled groups of slots on the left, the teams not
+ * yet placed on the right. Used by the group stage pick'em. Fills its parent
+ * and keeps every row the same height so both columns line up.
  */
-export function Predictions({ teams, slots, onChange, deadline }: PredictionsProps) {
+export function SlotBoard({
+  teams,
+  groups,
+  slots,
+  onChange,
+  slotsTitle,
+  resultFor,
+  footer,
+}: SlotBoardProps) {
   const teamsById = useMemo(
     () => new Map(teams.map((team) => [team.id, team])),
     [teams],
   );
-  const groups = useMemo(() => placementGroups(teams.length), [teams.length]);
 
   const { drag, startDrag } = useCardDrag<DropTarget>({
     findTarget: (x, y) => findDropTarget(x, y),
     onDrop: (teamId, target) => onChange(dropTeam(slots, teamId, target)),
   });
 
-  if (teams.length === 0) {
-    return (
-      <p className="self-start border-2 border-black bg-panel px-6 py-4 text-center text-sm text-paper/80">
-        No teams have been added to this event yet.
-      </p>
-    );
-  }
-
   const placed = new Set(slots.filter((id): id is string => id !== null));
   const pool = teams.filter((team) => !placed.has(team.id));
   const draggedTeam = drag ? teamsById.get(drag.teamId) : undefined;
 
-  const rowCount = teams.length;
-  const gridRows = `${HEADER_HEIGHT}px repeat(${rowCount}, minmax(${MIN_ROW_HEIGHT}px, 1fr))`;
+  // Both columns share one row height, set by the taller column.
+  const slotCount = slots.length;
+  const rowCount = Math.max(slotCount, teams.length);
+  const rowsCss = (count: number) =>
+    `${HEADER_HEIGHT}px repeat(${count}, minmax(${MIN_ROW_HEIGHT}px, 1fr))`;
   const boardMaxHeight = HEADER_HEIGHT + rowCount * MAX_ROW_HEIGHT + 6;
+  const shareOfHeight = (count: number) =>
+    `calc(${HEADER_HEIGHT + 6}px + (100% - ${HEADER_HEIGHT + 6}px) * ${count / rowCount})`;
 
-  function chip(team: EventTeam) {
+  function chip(team: EventTeam, result?: PickResult | null) {
     return (
       <TeamChip
         team={team}
+        result={result}
         dimmed={drag?.teamId === team.id}
         onPointerDown={(event) => startDrag(event, team.id)}
       />
     );
   }
+
+  // Index of each group's first slot.
+  const groupStarts = groups.map((_, index) =>
+    groups.slice(0, index).reduce((sum, group) => sum + group.size, 0),
+  );
 
   return (
     <div
@@ -128,38 +130,44 @@ export function Predictions({ teams, slots, onChange, deadline }: PredictionsPro
       }`}
     >
       <div
-        className="flex h-full w-full max-w-[760px] gap-[clamp(0.5rem,2vw,1.25rem)]"
+        className="flex h-full w-full max-w-[760px] items-start gap-[clamp(0.5rem,2vw,1.25rem)]"
         style={{ maxHeight: boardMaxHeight }}
       >
-        {/* Placements */}
+        {/* Slots */}
         <div
           className="shadow-offset grid min-w-0 flex-[1.4] border-[3px] border-black bg-panel"
           style={{
-            gridTemplateColumns: "clamp(2.75rem, 7vw, 4rem) 1fr",
-            gridTemplateRows: gridRows,
+            gridTemplateColumns: "clamp(3.25rem, 9vw, 5rem) 1fr",
+            gridTemplateRows: rowsCss(slotCount),
+            height: shareOfHeight(slotCount),
           }}
         >
-          <HeaderCell className="border-r-2">Place</HeaderCell>
-          <HeaderCell>Team</HeaderCell>
+          <HeaderCell className="border-r-2">Result</HeaderCell>
+          <HeaderCell>{slotsTitle}</HeaderCell>
 
           {groups.map((group, groupIndex) => {
-            const medal = PLACE_COLORS[groupIndex];
+            const lastGroup = groupIndex === groups.length - 1;
             return [
               <div
                 key={`label-${group.label}`}
-                className={`flex items-center justify-center border-r-2 border-black font-display text-[clamp(0.85rem,2.2dvh,1.15rem)] font-bold ${
-                  medal ? "text-black" : "bg-[#2a2a2a] text-paper"
-                } ${groupIndex < groups.length - 1 ? "border-b-2" : ""}`}
+                className={`flex flex-col items-center justify-center border-r-2 border-black px-1 text-center leading-tight ${
+                  group.color ? "text-black" : "bg-[#2a2a2a] text-paper"
+                } ${lastGroup ? "" : "border-b-2"}`}
                 style={{
                   gridColumn: 1,
                   gridRow: `span ${group.size}`,
-                  backgroundColor: medal,
+                  backgroundColor: group.color,
                 }}
               >
-                {group.label}
+                <span className="font-display text-[clamp(0.85rem,2.2dvh,1.15rem)] font-bold">
+                  {group.label}
+                </span>
+                {group.sublabel && (
+                  <span className="text-[0.65rem] font-semibold opacity-80">{group.sublabel}</span>
+                )}
               </div>,
               ...Array.from({ length: group.size }, (_, offset) => {
-                const index = group.start + offset;
+                const index = groupStarts[groupIndex] + offset;
                 const teamId = slots[index];
                 const team = teamId ? teamsById.get(teamId) : undefined;
                 const lastInGroup = offset === group.size - 1;
@@ -172,14 +180,14 @@ export function Predictions({ teams, slots, onChange, deadline }: PredictionsPro
                     style={{ gridColumn: 2 }}
                     className={`min-h-0 border-black p-[3px] transition-colors ${
                       lastInGroup
-                        ? groupIndex < groups.length - 1
-                          ? "border-b-2"
-                          : ""
+                        ? lastGroup
+                          ? ""
+                          : "border-b-2"
                         : "border-b border-b-black/60"
                     } ${isTarget ? "bg-white/15" : ""}`}
                   >
                     {team ? (
-                      chip(team)
+                      chip(team, resultFor?.(index, team.id))
                     ) : (
                       <div className="h-full border border-dashed border-white/10" />
                     )}
@@ -196,7 +204,7 @@ export function Predictions({ teams, slots, onChange, deadline }: PredictionsPro
           className={`shadow-offset grid min-w-0 flex-1 content-start border-[3px] border-black transition-colors ${
             drag?.target?.kind === "pool" ? "bg-[#222]" : "bg-panel"
           }`}
-          style={{ gridTemplateRows: gridRows }}
+          style={{ gridTemplateRows: rowsCss(teams.length), height: shareOfHeight(teams.length) }}
         >
           <HeaderCell>
             <span>Teams</span>
@@ -211,13 +219,13 @@ export function Predictions({ teams, slots, onChange, deadline }: PredictionsPro
             </div>
           ))}
 
-          {pool.length < rowCount && (
-            <p
-              className="flex items-end justify-center px-2 pb-2 text-center text-[0.7rem] text-paper/40"
+          {footer && pool.length < teams.length && (
+            <div
+              className="flex items-end justify-center px-2 pb-2 text-center text-[0.7rem] text-paper/50"
               style={{ gridRow: `${pool.length + 2} / -1` }}
             >
-              Predictions close {formatDeadline(deadline)}
-            </p>
+              {footer}
+            </div>
           )}
         </div>
       </div>
@@ -254,52 +262,4 @@ function HeaderCell({
       {children}
     </div>
   );
-}
-
-type TeamChipProps = {
-  team: EventTeam;
-  /** The chip's original spot while it is being dragged. */
-  dimmed?: boolean;
-  /** The copy that follows the pointer. */
-  lifted?: boolean;
-  onPointerDown?: (event: ReactPointerEvent<HTMLElement>) => void;
-};
-
-/**
- * A draggable team row: logo square on the left, name on the right.
- * Dark box with a light outline and light text.
- */
-function TeamChip({ team, dimmed, lifted, onPointerDown }: TeamChipProps) {
-  return (
-    <div
-      onPointerDown={onPointerDown}
-      title={team.name}
-      className={`flex h-full items-stretch overflow-hidden border bg-[#202020] text-paper ${
-        lifted
-          ? "border-paper shadow-[5px_5px_0_0_rgba(0,0,0,0.9)]"
-          : "cursor-grab touch-none border-paper/60 shadow-[2px_2px_0_0_#000] transition-colors hover:border-paper"
-      } ${dimmed ? "opacity-30" : ""}`}
-    >
-      <div className="flex aspect-square h-full shrink-0 items-center justify-center border-r border-paper/30 p-[2px]">
-        <TeamLogo team={team} fallbackStyle={{ fontSize: "0.6rem" }} />
-      </div>
-      <span className="flex min-w-0 flex-1 items-center px-2 text-[clamp(0.7rem,1.7dvh,0.9rem)] font-semibold">
-        <span className="truncate">{team.name}</span>
-      </span>
-    </div>
-  );
-}
-
-const deadlineFormat = new Intl.DateTimeFormat("en-GB", {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-  timeZone: "UTC",
-});
-
-/** "29 Sept 2026, 10:00 UTC" */
-function formatDeadline(deadline: string): string {
-  return `${deadlineFormat.format(new Date(deadline))} UTC`;
 }

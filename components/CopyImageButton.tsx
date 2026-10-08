@@ -12,7 +12,7 @@ const STATUS_TEXT: Record<Exclude<Status, "idle">, string> = {
 };
 
 type CopyImageButtonProps = {
-  /** Draws the picture (lib/tier-image.ts, lib/prediction-image.ts). */
+  /** Draws the picture (e.g. lib/tier-image.ts). */
   render: () => Promise<Blob>;
   /** File name for the download fallback, e.g. "blast-slam-viii-tier-list.png". */
   fileName: string;

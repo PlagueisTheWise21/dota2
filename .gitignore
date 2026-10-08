@@ -42,3 +42,6 @@ next-env.d.ts
 
 # small team logos made by `npm run logos` (uploaded to Supabase, not committed)
 /logos-out/
+
+# raw Liquipedia responses saved by `npm run sync` (re-use with --cached)
+/liquipedia-cache/

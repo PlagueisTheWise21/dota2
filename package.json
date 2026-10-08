@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "logos": "node scripts/shrink-logos.mjs"
+    "logos": "node scripts/shrink-logos.mjs",
+    "sync": "node scripts/sync-liquipedia.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",

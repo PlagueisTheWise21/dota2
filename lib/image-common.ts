@@ -1,8 +1,9 @@
 import { getTrimmedLogo } from "@/lib/logo-trim";
 
 /**
- * Canvas drawing helpers shared by the "Copy image" pictures
- * (lib/tier-image.ts and lib/prediction-image.ts). Browser-only.
+ * Canvas drawing helpers for the "Copy image" pictures (lib/tier-image.ts).
+ * Kept separate so other pictures (e.g. a pick'em image) can reuse them.
+ * Browser-only.
  */
 
 export const COLORS = {
