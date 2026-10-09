@@ -124,9 +124,23 @@ Unique (user_id, event_id, stage).
   `events.prediction_deadline`; playoffs = first playoff `matches.starts_at`,
   or `events.end_date` while no times are known.
 
+## Admin (agreed 9 October 2026)
+Created by `supabase/migrations/20261010_admin.sql`.
+- `admins`: `user_id` (uuid, PK, FK auth.users, cascade), `created_at`. RLS on,
+  no API access; rows added in the SQL editor.
+- `public.is_admin()`: true when the caller is in `admins` (anon/authenticated).
+- `events.playoff_deadline` (timestamptz, nullable): overrides when playoff
+  picks lock; `pickem_deadline()` uses it before the first playoff match.
+- Write policies: admins may insert, update and delete `events`, `teams` and
+  `event_teams` (grants to authenticated + `is_admin()` policies). Everyone
+  else still has read-only access.
+- `public.merge_teams(p_keep, p_remove)` (admins only): moves event_teams,
+  matches, group_standings, event_placements and team ids inside
+  saved_tier_lists/saved_pickems to p_keep, then deletes p_remove.
+
 ## What the code reads today
 - Homepage (`lib/events.ts`, `getEvents`): `events.id`, `events.name`, `events.image_url`, ordered by `events.start_date`.
-- Event page (`lib/events.ts`, `getEvent`): `events.id, name, start_date, end_date, prediction_deadline, status, liquipedia_page, group_format`,
+- Event page (`lib/events.ts`, `getEvent`): `events.id, name, start_date, end_date, prediction_deadline, playoff_deadline, status, liquipedia_page, group_format`,
   plus `event_teams.seed` and `teams.id, name, short_name, logo_url` through `event_teams`.
   Teams are ordered by `seed` (unseeded last, then by name); the seed is not displayed.
 - Logo route (`app/api/logo/route.ts`): `teams.logo_url`, to check a requested URL
@@ -135,8 +149,13 @@ Unique (user_id, event_id, stage).
 ## Storage
 | Bucket | Public | Holds |
 |---|---|---|
-| team-logos | yes (planned; create in the dashboard) | small trimmed team logos made by `npm run logos`; `teams.logo_url` points at them |
+| team-logos | yes | trimmed 256px team logos uploaded from the admin page (or `npm run logos`); `teams.logo_url` points at them |
+| event-banners | yes | event banners uploaded from the admin page; `events.image_url` points at them |
+
+Both buckets: images only, admins upload/replace/delete (`20261010_admin.sql`).
 - Pick'em (`lib/pickem-data.ts`): `matches` (incl. `starts_at` for the playoff
   deadline) and `group_standings`.
 - Saved picks (`lib/saved-picks.ts`, browser, signed in): `saved_tier_lists`,
   `saved_pickems`; `profiles` for the header (`components/useAuth.ts`).
+- Admin page (`lib/admin.ts`): all columns of `events` and `teams`, `event_teams`,
+  and `matches.updated_at` / `starts_at` (last sync, automatic playoff deadline).

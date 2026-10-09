@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { Profile } from "@/components/useAuth";
 import type { SaveStatus } from "@/components/useDebouncedSave";
@@ -8,6 +9,8 @@ type AccountButtonProps = {
   ready: boolean;
   profile: Profile | null;
   saveStatus: SaveStatus;
+  /** Shows an "Admin panel" link in the menu. */
+  isAdmin?: boolean;
   onSignIn: () => void;
   onSignOut: () => void;
 };
@@ -23,7 +26,7 @@ const STATUS_TEXT: Partial<Record<SaveStatus, string>> = {
  * "Sign in" with Twitch, or the signed-in person's picture and name with a
  * small menu to sign out. Shows whether picks have been saved.
  */
-export function AccountButton({ ready, profile, saveStatus, onSignIn, onSignOut }: AccountButtonProps) {
+export function AccountButton({ ready, profile, saveStatus, isAdmin = false, onSignIn, onSignOut }: AccountButtonProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
 
@@ -106,6 +109,15 @@ export function AccountButton({ ready, profile, saveStatus, onSignIn, onSignOut 
           <p className="px-3 py-2 text-xs text-paper/60">
             Signed in as <span className="font-semibold text-paper">{profile.display_name}</span>
           </p>
+          {isAdmin && (
+            <Link
+              href="/admin"
+              role="menuitem"
+              className="block w-full px-3 py-2 text-left font-display font-bold tracking-widest text-paper uppercase hover:bg-[#2a2a2a]"
+            >
+              Admin panel
+            </Link>
+          )}
           <button
             type="button"
             role="menuitem"

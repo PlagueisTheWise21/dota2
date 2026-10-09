@@ -21,6 +21,8 @@ export function useAuth() {
   const [checked, setChecked] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [loadedProfile, setLoadedProfile] = useState<Profile | null>(null);
+  /** Which user the admin check was for, and the answer. */
+  const [adminCheck, setAdminCheck] = useState<{ userId: string; isAdmin: boolean } | null>(null);
 
   useEffect(() => {
     if (!supabase) return;
@@ -46,6 +48,10 @@ export function useAuth() {
       if (cancelled) return;
       if (error) console.error("Could not load the profile:", error.message);
       setLoadedProfile((data as Profile | null) ?? null);
+    });
+    // Admins get a link to /admin; the database decides (public.is_admin()).
+    supabase.rpc("is_admin").then(({ data }) => {
+      if (!cancelled) setAdminCheck({ userId, isAdmin: data === true });
     });
     return () => {
       cancelled = true;
@@ -85,6 +91,10 @@ export function useAuth() {
     available: Boolean(supabase),
     user,
     profile,
+    /** True for admins (public.admins); only hides or shows admin links. */
+    isAdmin: Boolean(user && adminCheck?.userId === user.id && adminCheck.isAdmin),
+    /** False until the admin check for the signed-in person has finished. */
+    adminChecked: !user || adminCheck?.userId === user.id,
     signIn,
     signOut,
   };

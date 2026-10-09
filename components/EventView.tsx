@@ -202,6 +202,7 @@ export function EventView({ event, pickemData }: EventViewProps) {
               ready={auth.ready}
               profile={auth.profile}
               saveStatus={saveStatus}
+              isAdmin={auth.isAdmin}
               onSignIn={signIn}
               onSignOut={() => void auth.signOut()}
             />

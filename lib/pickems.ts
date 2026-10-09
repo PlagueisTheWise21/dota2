@@ -249,15 +249,17 @@ export function roundNames(matches: BracketMatch[]): Map<string, string> {
 /**
  * When a stage's picks lock (mirrors the database function
  * public.pickem_deadline, which enforces it): the group stage at the event's
- * prediction deadline; the playoffs when the first playoff match starts, or
+ * prediction deadline; the playoffs at the admin's playoff_deadline if set,
+ * else when the first playoff match starts, or
  * at the event's end while no match times are known.
  */
 export function stageDeadline(
   stage: "group" | "playoffs",
-  event: { prediction_deadline: string; end_date: string },
+  event: { prediction_deadline: string; end_date: string; playoff_deadline: string | null },
   bracket: BracketMatch[],
 ): string {
   if (stage === "group") return event.prediction_deadline;
+  if (event.playoff_deadline) return event.playoff_deadline;
   const starts = bracket
     .map((match) => match.startsAt)
     .filter((time): time is string => Boolean(time))

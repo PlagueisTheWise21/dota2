@@ -162,6 +162,34 @@ Do not over-engineer.
   database enforces the same deadlines. Pick'ems become public after the
   deadline (owner's choice); tier lists stay private. Twitch avatars shown.
   Supabase URL configuration allows the live domain and localhost:3000.
+- Admin panel (built 9 October 2026; Phase 8 first version): `/admin`
+  (`app/admin/page.tsx`, `components/admin/`, data in `lib/admin.ts`).
+  Admins are the accounts in `public.admins` (checked by `public.is_admin()`);
+  others see "Page not found", and the database refuses their writes anyway.
+  Admins get an "Admin panel" link in the account menu. SQL:
+  `supabase/migrations/20261010_admin.sql`.
+  - Events: create, edit (name, dates, status, group format, Liquipedia
+    page), delete (type the name; cascades to matches and saved picks),
+    banner upload (shrunk to 1600px WebP, bucket `event-banners`).
+  - Deadlines (UTC): group lock (`events.prediction_deadline`) and playoff
+    lock (`events.playoff_deadline`, null = automatic); "Lock now" and
+    "Use automatic". The event page and `pickem_deadline()` honour both.
+  - Teams in an event: add existing, create new, remove, reorder (drag or
+    arrows; order = seed), saved with "Save teams".
+  - Teams: edit name/short name/logo; logo upload trimmed and shrunk to 256px
+    WebP in the browser (`lib/admin-images.ts`, bucket `team-logos`; replaces
+    `npm run logos`); "Make fast copy" for logos on other sites; filters for
+    no logo / slow logo / unused; delete (only without results); merge a
+    duplicate (`public.merge_teams()`, also rewrites saved picks).
+  - Liquipedia: "Preview changes" / "Sync now" per event and "Import" for a
+    new event, through `app/api/admin/sync/route.ts` (checks the caller is an
+    admin, then runs `lib/liquipedia-sync.mjs` with the server-only keys).
+    `npm run sync` uses the same module. On Vercel this needs
+    `LIQUIPEDIA_API_KEY` and `SUPABASE_SERVICE_ROLE_KEY` as environment
+    variables (server only, never NEXT_PUBLIC_).
+  - Later options (not agreed yet): automatic sync during live events,
+    manual result fixes, event visibility/carousel order, homepage text,
+    pick'em stats, users list, change log, health check.
 - The owner has a Liquipedia API key, for Phase 9. It must go in `.env.local`
   without a `NEXT_PUBLIC_` prefix (server only) and never in code or chat.
 - `app/api/logo/route.ts`: serves a team logo from this site so the browser may

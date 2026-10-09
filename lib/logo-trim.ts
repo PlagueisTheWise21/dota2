@@ -61,7 +61,7 @@ function loadImage(src: string, crossOrigin = false): Promise<HTMLImageElement> 
 }
 
 /**
- * Small copies in this project's Supabase Storage (made by `npm run logos`)
+ * Small copies in this project's Supabase Storage (made by the admin page or `npm run logos`)
  * load straight from Supabase, which allows its public files to be read by
  * other sites. Everything else goes through app/api/logo/route.ts.
  */
@@ -72,7 +72,7 @@ function isOwnStorageUrl(logoUrl: string): boolean {
   );
 }
 
-async function loadLogoImage(logoUrl: string): Promise<HTMLImageElement> {
+export async function loadLogoImage(logoUrl: string): Promise<HTMLImageElement> {
   const viaRoute = `/api/logo?url=${encodeURIComponent(logoUrl)}`;
   if (!isOwnStorageUrl(logoUrl)) return loadImage(viaRoute);
   try {
@@ -83,7 +83,15 @@ async function loadLogoImage(logoUrl: string): Promise<HTMLImageElement> {
 }
 
 async function trimLogo(logoUrl: string): Promise<string | null> {
-  const image = await loadLogoImage(logoUrl);
+  const trimmed = trimImage(await loadLogoImage(logoUrl));
+  return trimmed ? trimmed.toDataURL("image/png") : null;
+}
+
+/**
+ * The image cropped to its visible part and shrunk to at most OUTPUT_SIZE px,
+ * or null if it is empty. Also used by the admin page before uploading a logo.
+ */
+export function trimImage(image: HTMLImageElement): HTMLCanvasElement | null {
   const { naturalWidth: width, naturalHeight: height } = image;
   if (!width || !height) return null;
 
@@ -151,5 +159,5 @@ async function trimLogo(logoUrl: string): Promise<string | null> {
     output.width,
     output.height,
   );
-  return output.toDataURL("image/png");
+  return output;
 }
