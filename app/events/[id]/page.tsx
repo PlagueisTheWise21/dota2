@@ -38,6 +38,6 @@ export default async function EventPage({ params }: PageProps<"/events/[id]">) {
     notFound();
   }
 
-  const pickemData = await getPickemData(event.id);
+  const pickemData = await getPickemData(event.id, event.group_format);
   return <EventView event={event} pickemData={pickemData} />;
 }

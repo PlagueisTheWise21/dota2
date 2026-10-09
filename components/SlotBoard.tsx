@@ -68,6 +68,8 @@ type SlotBoardProps = {
   resultFor?: (index: number, teamId: string) => PickResult | null;
   /** Small text at the bottom of the teams box. */
   footer?: ReactNode;
+  /** Picks are locked: show them, but nothing can be dragged. */
+  readOnly?: boolean;
 };
 
 /**
@@ -83,6 +85,7 @@ export function SlotBoard({
   slotsTitle,
   resultFor,
   footer,
+  readOnly = false,
 }: SlotBoardProps) {
   const teamsById = useMemo(
     () => new Map(teams.map((team) => [team.id, team])),
@@ -113,7 +116,7 @@ export function SlotBoard({
         team={team}
         result={result}
         dimmed={drag?.teamId === team.id}
-        onPointerDown={(event) => startDrag(event, team.id)}
+        onPointerDown={readOnly ? undefined : (event) => startDrag(event, team.id)}
       />
     );
   }

@@ -112,10 +112,16 @@ Do not over-engineer.
     in `lib/image-common.ts`.
   - Pick'em (`components/Pickems.tsx`; replaced the finishing-order
     Predictions tab on the owner's request), with two sections:
-    - Group Stage (Swiss, CS-major style): pick 2 teams to go 3–0, 6 to advance
-      (3–1/3–2) and 2 to go 0–3 (`components/SlotBoard.tsx`, sizes from
-      `lib/pickems.ts`). Once the group stage is over, picks are marked right
-      or wrong against `group_standings`.
+    - Group Stage, by `events.group_format`:
+      - Swiss (CS-major style): pick 2 teams to go 3–0, 6 to advance (3–1/3–2)
+        and 2 to go 0–3. Marked right/wrong from the final records.
+      - Round-robin: Group A / B switch; order each group's teams 1st..last
+        (top N marked advance, the rest out, N from Liquipedia's "up" places).
+        Marked right/wrong against the final group tables once every group
+        match is played. "Groups not drawn yet" until the draw is synced.
+      - Other formats (GSL...): "not supported yet" notice.
+      - Boards use `components/SlotBoard.tsx`; layout helpers in `lib/pickems.ts`
+        (`swissGroups`, `roundRobinGroups`, `groupSegments`).
     - Playoffs: double-elimination bracket from `matches`; click a team to pick
       each winner; picks fill later rounds, losers drop via `loser_to`, and
       picks made impossible by a change are cleared. Finished matches show
@@ -134,14 +140,28 @@ Do not over-engineer.
   links an existing event. Uses `SUPABASE_SERVICE_ROLE_KEY` (server only, in
   `.env.local`). Tables: `supabase/migrations/20261008_liquipedia.sql`; the
   service role's default grants were restored in `20261008b_service_role_grants.sql`.
-  Synced so far: PGL Wallachia Season 9 (finished; Swiss + 8-team double elim).
-  Pending: PARI Universe (`PARI_Universe/1`, 22 Oct to 1 Nov 2026): two
-  round-robin groups of 5 (top 4 advance), then the same 8-team double elim.
-  Owner is waiting for the last qualifier. Plan agreed in principle: add
-  `events.group_format` and `group_standings.group_index` (needs approval),
-  an "order each group" pick'em for round-robin, an "unsupported format"
-  message for others, and sync with `--event <id>` to link the owner's
-  existing PARI Universe event instead of creating a duplicate.
+  Group formats: the sync stores `events.group_format` (from Liquipedia's
+  format text) and `group_standings.group_index`. Names ignore bracketed
+  suffixes ("LEGION (stack)" = "LEGION"). Synced so far:
+  - PGL Wallachia Season 9: Swiss + 8-team double elim (finished).
+  - PARI Universe (`PARI_Universe/1`, linked to the owner's event
+    8892f17d-...): two round-robin groups of 5, top 4 advance, then 8-team
+    double elim. Group picks lock 22 Oct 08:00 UTC (deadline corrected by the
+    owner), playoff picks 28 Oct 08:00. Groups not drawn yet: re-sync
+    (`npm run sync -- PARI_Universe/1`) once Liquipedia has the draw, and as
+    results come in.
+- Twitch sign-in and saving (built 9 October 2026): "Sign in" button next to
+  Home (`components/AccountButton.tsx`, `components/useAuth.ts`; Supabase Auth,
+  Twitch provider, browser session). Login is optional: signed out nothing is
+  saved; signed in, the tier list and both pick'em stages save automatically
+  about 0.6 s after a change (`components/useDebouncedSave.ts`,
+  `lib/saved-picks.ts`) and load on return. Picks made before signing in are
+  kept through the Twitch redirect (sessionStorage) and saved if nothing was
+  saved yet. Each pick'em stage locks at its deadline (`stageDeadline` in
+  `lib/pickems.ts`, `components/useNow.ts`), shown as "Picks locked …"; the
+  database enforces the same deadlines. Pick'ems become public after the
+  deadline (owner's choice); tier lists stay private. Twitch avatars shown.
+  Supabase URL configuration allows the live domain and localhost:3000.
 - The owner has a Liquipedia API key, for Phase 9. It must go in `.env.local`
   without a `NEXT_PUBLIC_` prefix (server only) and never in code or chat.
 - `app/api/logo/route.ts`: serves a team logo from this site so the browser may
@@ -186,8 +206,8 @@ Do not over-engineer.
 - Git initialised; `main` pushed to github.com/PlagueisTheWise21/dota2.
 
 ### Not yet verified
-- Whether the old sign-up trigger on `auth.users` (which inserted into the dropped
-  `profiles` table) was removed. Check before adding authentication.
+- A real Twitch sign-in end to end (the redirect to Twitch's login was checked
+  on 9 October 2026; the old sign-up trigger is confirmed gone).
 
 ### Database decisions made
 - Only `events`, `teams`, `event_teams` remain. `predictions`, `prediction_positions`,
@@ -204,17 +224,12 @@ Do not over-engineer.
 - Pick'em leaderboards: score everyone's group stage and playoff picks
   against the real results (`group_standings`, `matches`) and rank users per
   event, and possibly overall. Needs saved pick'ems first.
-- Twitch sign-in (Supabase Auth, Phase 7), so tier lists and pick'ems can be
-  saved and appear on leaderboards. Before building: check the old sign-up
-  trigger on `auth.users` (see "Not yet verified"), add the live domain to
-  Supabase's allowed redirect URLs, and register the Twitch app's callback.
-- Both need new tables (saved tier lists, saved pick'ems, profiles), to be
-  designed with the owner first.
+- (Twitch sign-in and saved picks are now built; see "Built".) Leaderboards
+  can score `saved_pickems` against `group_standings` and `matches`.
 
 ### Suggested later (not agreed yet)
 - `events.slug`: add a unique constraint (Phase 2).
 - `events.status`: restrict to fixed values (Phase 2).
-- A table for saved tier lists (Phase 3).
 - Real placement groups now come from Liquipedia into `event_placements` (e.g.
   9–11); useful for scoring if finishing-order predictions return.
 

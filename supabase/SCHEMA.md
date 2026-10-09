@@ -60,6 +60,10 @@ only reads them. Readable by everyone (select grant + policy), no API writes.
 New columns:
 - `events.liquipedia_page` (text, unique): e.g. `PGL/Wallachia/9`.
 - `teams.liquipedia_template` (text, unique): e.g. `xtreme gaming orig`.
+- `events.group_format` (text: 'swiss', 'round_robin', 'gsl', 'other' or null;
+  `20261009b_group_formats.sql`): set by the sync from Liquipedia.
+- `group_standings.group_index` (smallint, default 0): the team's group
+  (0 = Group A); Swiss stages are all 0.
 
 ### matches
 | Column | Type | Notes |
@@ -84,15 +88,45 @@ New columns:
 
 ### group_standings
 `id`, `event_id` (FK), `team_id` (FK), `round`, `placement`, `wins`, `losses`,
-`draws`, `status` (Liquipedia: 'up', 'down', ...). Unique (event_id, team_id, round).
+`draws`, `status` (Liquipedia: 'up', 'down', ...), `group_index`. Unique (event_id, team_id, round).
 
 ### event_placements
 `id`, `event_id` (FK), `team_id` (FK), `place_from`, `place_to`, `prize_money`.
 Unique (event_id, team_id). Real placement groups, e.g. 9-11.
 
+## Accounts and saved picks (agreed 9 October 2026)
+Created by `supabase/migrations/20261009_accounts.sql`. The old project's
+functions `get_leaderboard`, `calculate_event_scores` and `get_player_profile`
+were dropped the same day; no trigger was left on `auth.users`.
+
+### profiles
+`id` (uuid, PK, = `auth.users.id`, cascade delete), `display_name`, `twitch_login`,
+`avatar_url`, `created_at`, `updated_at`. Filled by the trigger
+`on_auth_user_saved` (function `sync_profile_from_auth`) on sign-up and when
+Twitch details change; it never blocks a sign-in. Everyone can read; no API writes.
+`public.ensure_profile()` (`20261009c_ensure_profile.sql`, signed-in only) creates or
+refreshes the caller's own profile; the site calls it on sign-in and before retrying a
+save that failed for lack of a profile. Accounts from before 9 October were backfilled.
+
+### saved_tier_lists
+`id`, `user_id` (FK profiles, cascade), `event_id` (FK events, cascade),
+`placements` (jsonb: `{"S": [team ids], ..., "unranked": [...]}`), `created_at`,
+`updated_at`. Unique (user_id, event_id). Private: owner only (all actions).
+
+### saved_pickems
+`id`, `user_id` (FK profiles), `event_id` (FK events), `stage` ('group' or
+'playoffs'), `picks` (jsonb: group = team id per slot; playoffs =
+`{match liquipedia_id: team id}`), `created_at`, `updated_at`.
+Unique (user_id, event_id, stage).
+- Read: the owner any time; everyone (anon too) once the stage's deadline passed.
+- Insert/update/delete: the owner, only before the stage's deadline.
+- Deadline: `public.pickem_deadline(event_id, stage)`: group =
+  `events.prediction_deadline`; playoffs = first playoff `matches.starts_at`,
+  or `events.end_date` while no times are known.
+
 ## What the code reads today
 - Homepage (`lib/events.ts`, `getEvents`): `events.id`, `events.name`, `events.image_url`, ordered by `events.start_date`.
-- Event page (`lib/events.ts`, `getEvent`): `events.id, name, start_date, end_date, prediction_deadline, status`,
+- Event page (`lib/events.ts`, `getEvent`): `events.id, name, start_date, end_date, prediction_deadline, status, liquipedia_page, group_format`,
   plus `event_teams.seed` and `teams.id, name, short_name, logo_url` through `event_teams`.
   Teams are ordered by `seed` (unseeded last, then by name); the seed is not displayed.
 - Logo route (`app/api/logo/route.ts`): `teams.logo_url`, to check a requested URL
@@ -102,3 +136,7 @@ Unique (event_id, team_id). Real placement groups, e.g. 9-11.
 | Bucket | Public | Holds |
 |---|---|---|
 | team-logos | yes (planned; create in the dashboard) | small trimmed team logos made by `npm run logos`; `teams.logo_url` points at them |
+- Pick'em (`lib/pickem-data.ts`): `matches` (incl. `starts_at` for the playoff
+  deadline) and `group_standings`.
+- Saved picks (`lib/saved-picks.ts`, browser, signed in): `saved_tier_lists`,
+  `saved_pickems`; `profiles` for the header (`components/useAuth.ts`).

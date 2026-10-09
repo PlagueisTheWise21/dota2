@@ -20,6 +20,8 @@ export type BracketMatch = {
   score1: number | null;
   score2: number | null;
   finished: boolean;
+  /** ISO time, or null when not scheduled yet. */
+  startsAt: string | null;
   winnerTo: string | null;
   winnerToSlot: 1 | 2 | null;
   loserTo: string | null;
@@ -29,11 +31,22 @@ export type BracketMatch = {
 /** A team's final group stage record. */
 export type GroupRecord = { teamId: string; wins: number; losses: number };
 
+/** One round-robin group: its teams and how many of them advance. */
+export type GroupInfo = { index: number; teamIds: string[]; advance: number };
+
+export type GroupFormat = "swiss" | "round_robin" | "unsupported";
+
 export type PickemData = {
-  /** Teams playing the (Swiss) group stage; empty when there is none. */
+  /** Which group stage pick'em to show; null when there is no group stage. */
+  groupFormat: GroupFormat | null;
+  /** Teams playing the group stage (all groups); empty until known. */
   groupTeamIds: string[];
-  /** Final records, only once every team has finished the group stage. */
+  /** Swiss: final records, only once every team has finished. */
   groupRecords: GroupRecord[] | null;
+  /** Round-robin: the groups, empty until they have been drawn. */
+  groups: GroupInfo[];
+  /** Round-robin: each team's final place in its group, once all group matches are played. */
+  groupPlacements: Record<string, number> | null;
   /** Playoff matches; empty when there is no bracket. */
   bracket: BracketMatch[];
 };
@@ -53,6 +66,54 @@ export function swissGroups(teamCount: number): SlotGroup[] {
     { label: "Advance", sublabel: "3–1 / 3–2", size: Math.max(0, advancing - perfect) },
     { label: "0–3", sublabel: "winless", size: perfect, color: "#ef4444" },
   ];
+}
+
+/**
+ * Round-robin pick'em for one group: order its teams 1st to last. The top
+ * `advance` places go through; the rest are out.
+ */
+export function roundRobinGroups(size: number, advance: number): SlotGroup[] {
+  return Array.from({ length: size }, (_, index) => ({
+    label: ordinal(index + 1),
+    sublabel: index < advance ? "advance" : "out",
+    size: 1,
+    color: index < advance ? undefined : "#ef4444",
+  }));
+}
+
+/** "Group A", "Group B"... */
+export function groupName(index: number): string {
+  return `Group ${String.fromCharCode(65 + index)}`;
+}
+
+function ordinal(n: number): string {
+  const suffix = n % 10 === 1 && n % 100 !== 11 ? "st" : n % 10 === 2 && n % 100 !== 12 ? "nd" : n % 10 === 3 && n % 100 !== 13 ? "rd" : "th";
+  return `${n}${suffix}`;
+}
+
+/**
+ * How the saved group picks array is split up: Swiss is one block of slots
+ * (3-0, advance, 0-3); round-robin has one block per group (1st..last).
+ */
+export function groupSegments(data: PickemData): { offset: number; size: number; teamIds: string[] }[] {
+  if (data.groupFormat === "swiss") {
+    const size = swissGroups(data.groupTeamIds.length).reduce((sum, group) => sum + group.size, 0);
+    return data.groupTeamIds.length > 0 ? [{ offset: 0, size, teamIds: data.groupTeamIds }] : [];
+  }
+  if (data.groupFormat === "round_robin") {
+    let offset = 0;
+    return data.groups.map((group) => {
+      const segment = { offset, size: group.teamIds.length, teamIds: group.teamIds };
+      offset += group.teamIds.length;
+      return segment;
+    });
+  }
+  return [];
+}
+
+/** Total number of group pick slots. */
+export function groupSlotCount(data: PickemData): number {
+  return groupSegments(data).reduce((sum, segment) => sum + segment.size, 0);
 }
 
 /** Whether a pick in the given group came true, from the team's final record. */
@@ -181,4 +242,25 @@ export function roundNames(matches: BracketMatch[]): Map<string, string> {
 
   if (final) names.set(key(final.section, final.round), "Grand Final");
   return names;
+}
+
+// --- Deadlines -----------------------------------------------------------------
+
+/**
+ * When a stage's picks lock (mirrors the database function
+ * public.pickem_deadline, which enforces it): the group stage at the event's
+ * prediction deadline; the playoffs when the first playoff match starts, or
+ * at the event's end while no match times are known.
+ */
+export function stageDeadline(
+  stage: "group" | "playoffs",
+  event: { prediction_deadline: string; end_date: string },
+  bracket: BracketMatch[],
+): string {
+  if (stage === "group") return event.prediction_deadline;
+  const starts = bracket
+    .map((match) => match.startsAt)
+    .filter((time): time is string => Boolean(time))
+    .sort();
+  return starts[0] ?? event.end_date;
 }

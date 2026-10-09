@@ -22,13 +22,17 @@ import {
 import {
   grandFinal,
   groupIndexOfSlot,
+  groupName,
+  groupSegments,
   realWinner,
   resolveBracket,
   roundNames,
+  roundRobinGroups,
+  swissGroups,
   swissPickCorrect,
+  type PickemData,
   type BracketMatch,
   type BracketPicks,
-  type GroupRecord,
   type ResolvedMatch,
 } from "@/lib/pickems";
 
@@ -106,36 +110,119 @@ const GROUP_BOARD_WIDTH = 560;
 const GROUP_HEADER = 30;
 const GROUP_ROW = 44;
 const GROUP_LABEL = 84;
+const BOARD_TITLE = 26;
+const BOARD_GAP = 26;
+
+/** One board of group picks (Swiss has one; round-robin one per group). */
+export type GroupBoard = {
+  /** Shown above the board, e.g. "Group A"; none for Swiss. */
+  title?: string;
+  teams: EventTeam[];
+  groups: SlotGroup[];
+  slots: Slots;
+  /** Right or wrong per filled slot, once results are known. */
+  resultFor?: (index: number, teamId: string) => Result;
+};
+
+/** The boards to draw for the event's group format, with right/wrong marks. */
+export function groupBoards(teams: EventTeam[], data: PickemData, slots: Slots): GroupBoard[] {
+  const teamsById = new Map(teams.map((team) => [team.id, team]));
+  const pick = (ids: string[]) =>
+    ids.map((id) => teamsById.get(id)).filter((team): team is EventTeam => Boolean(team));
+
+  if (data.groupFormat === "swiss") {
+    const groups = swissGroups(data.groupTeamIds.length);
+    const records = new Map((data.groupRecords ?? []).map((r) => [r.teamId, r]));
+    return [
+      {
+        teams: pick(data.groupTeamIds),
+        groups,
+        slots,
+        resultFor: data.groupRecords
+          ? (index, teamId) => {
+              const record = records.get(teamId);
+              if (!record) return null;
+              return swissPickCorrect(groupIndexOfSlot(groups, index), record) ? "correct" : "wrong";
+            }
+          : undefined,
+      },
+    ];
+  }
+
+  if (data.groupFormat === "round_robin") {
+    const segments = groupSegments(data);
+    const placements = data.groupPlacements;
+    return data.groups.map((group, index) => ({
+      title: groupName(group.index),
+      teams: pick(group.teamIds),
+      groups: roundRobinGroups(group.teamIds.length, group.advance),
+      slots: slots.slice(segments[index].offset, segments[index].offset + segments[index].size),
+      resultFor: placements
+        ? (slot: number, teamId: string) =>
+            placements[teamId] === undefined ? null : placements[teamId] === slot + 1 ? "correct" : "wrong"
+        : undefined,
+    }));
+  }
+
+  return [];
+}
 
 /** Your group stage picks as a PNG (empty slots are dashed). */
 export async function renderGroupPickemPng(
   eventName: string,
-  teams: EventTeam[],
-  groups: SlotGroup[],
-  slots: Slots,
-  records: GroupRecord[] | null,
+  boards: GroupBoard[],
   pixelRatio = 2,
 ): Promise<Blob> {
-  const [fonts, logos] = await Promise.all([loadFonts(), loadLogos(teams)]);
-  const teamsById = new Map(teams.map((team) => [team.id, team]));
-  const recordsById = new Map((records ?? []).map((record) => [record.teamId, record]));
+  const allTeams = [...new Map(boards.flatMap((b) => b.teams).map((t) => [t.id, t])).values()];
+  const [fonts, logos] = await Promise.all([loadFonts(), loadLogos(allTeams)]);
 
-  const resultFor = (index: number, teamId: string): Result => {
-    const record = recordsById.get(teamId);
-    if (!records || !record) return null;
-    return swissPickCorrect(groupIndexOfSlot(groups, index), record) ? "correct" : "wrong";
-  };
-  const picked = slots.filter(Boolean).length;
-  const correct = slots.filter((id, index) => id && resultFor(index, id) === "correct").length;
-
-  const boardHeight = 6 + GROUP_HEADER + slots.length * GROUP_ROW;
+  const boardHeight = (board: GroupBoard) => 6 + GROUP_HEADER + board.slots.length * GROUP_ROW;
+  const boardsHeight = boards.reduce(
+    (sum, board, index) =>
+      sum + (board.title ? BOARD_TITLE : 0) + boardHeight(board) + (index > 0 ? BOARD_GAP : 0),
+    0,
+  );
   const width = GROUP_BOARD_WIDTH + 2 * PADDING;
-  const height = PADDING + TITLE_HEIGHT + TITLE_GAP + boardHeight + PADDING + PANEL_SHADOW;
+  const height = PADDING + TITLE_HEIGHT + TITLE_GAP + boardsHeight + PADDING + PANEL_SHADOW;
   const { canvas, context } = createCanvas(width, height, pixelRatio);
   drawTitle(context, fonts, width, GROUP_BOARD_WIDTH, eventName, "Pick'em · Group stage");
 
-  const boardX = PADDING;
-  const boardY = PADDING + TITLE_HEIGHT + TITLE_GAP;
+  let y = PADDING + TITLE_HEIGHT + TITLE_GAP;
+  boards.forEach((board, index) => {
+    if (index > 0) y += BOARD_GAP;
+    if (board.title) {
+      context.fillStyle = "rgba(232, 236, 241, 0.75)";
+      context.font = `700 14px ${fonts.display}`;
+      context.textAlign = "left";
+      context.textBaseline = "middle";
+      withLetterSpacing(context, "2px", () =>
+        context.fillText(board.title!.toUpperCase(), PADDING, y + BOARD_TITLE / 2 - 3),
+      );
+      y += BOARD_TITLE;
+    }
+    drawGroupBoard(context, fonts, board, logos, PADDING, y);
+    y += boardHeight(board);
+  });
+
+  return canvasToPng(canvas);
+}
+
+function drawGroupBoard(
+  context: CanvasRenderingContext2D,
+  fonts: Fonts,
+  board: GroupBoard,
+  logos: Map<string, HTMLImageElement | null>,
+  boardX: number,
+  boardY: number,
+) {
+  const { groups, slots, resultFor } = board;
+  const teamsById = new Map(board.teams.map((team) => [team.id, team]));
+  const picked = slots.filter(Boolean).length;
+  const results = slots.map((id, index) => (id && resultFor ? resultFor(index, id) : null));
+  const hasResults = results.some(Boolean);
+  const correct = results.filter((r) => r === "correct").length;
+
+  const boardHeight = 6 + GROUP_HEADER + slots.length * GROUP_ROW;
   drawBox(context, boardX, boardY, GROUP_BOARD_WIDTH, boardHeight, {
     fill: COLORS.panel,
     border: 3,
@@ -160,7 +247,7 @@ export async function renderGroupPickemPng(
   withLetterSpacing(context, "2px", () => {
     context.fillText("RESULT", innerX + 8, headerY + GROUP_HEADER / 2);
     context.fillText(
-      records ? `PICKS · ${correct}/${picked} CORRECT` : `PICKS · ${picked}/${slots.length}`,
+      hasResults ? `PICKS · ${correct}/${picked} CORRECT` : `PICKS · ${picked}/${slots.length}`,
       slotX + 8,
       headerY + GROUP_HEADER / 2,
     );
@@ -180,11 +267,12 @@ export async function renderGroupPickemPng(
     context.textAlign = "center";
     context.textBaseline = "middle";
     const middle = rowY + groupHeight / 2;
-    context.font = `700 18px ${fonts.display}`;
-    context.fillText(group.label, innerX + GROUP_LABEL / 2, group.sublabel ? middle - 7 : middle);
+    const compact = groupHeight < 50;
+    context.font = `700 ${compact ? 15 : 18}px ${fonts.display}`;
+    context.fillText(group.label, innerX + GROUP_LABEL / 2, group.sublabel ? middle - (compact ? 6 : 7) : middle);
     if (group.sublabel) {
-      context.font = `600 10px ${fonts.body}`;
-      context.fillText(group.sublabel, innerX + GROUP_LABEL / 2, middle + 11);
+      context.font = `600 ${compact ? 9 : 10}px ${fonts.body}`;
+      context.fillText(group.sublabel, innerX + GROUP_LABEL / 2, middle + (compact ? 9 : 11));
     }
 
     for (let offset = 0; offset < group.size; offset++, slotIndex++) {
@@ -205,7 +293,7 @@ export async function renderGroupPickemPng(
       const team = teamId ? teamsById.get(teamId) : undefined;
       if (team) {
         drawChip(context, fonts, team, logos.get(team.id) ?? null, boxX, boxY, boxWidth, boxHeight, {
-          result: resultFor(slotIndex, team.id),
+          result: results[slotIndex],
         });
       } else {
         context.save();
@@ -218,8 +306,6 @@ export async function renderGroupPickemPng(
     }
     rowY += groupHeight;
   });
-
-  return canvasToPng(canvas);
 }
 
 // --- Playoffs -----------------------------------------------------------------

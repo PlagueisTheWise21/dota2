@@ -72,7 +72,7 @@ export function CopyImageButton({ render, fileName, what }: CopyImageButtonProps
         className="shadow-offset flex h-full cursor-pointer items-center gap-2 border-2 border-paper/60 bg-panel px-[clamp(0.5rem,1.5vw,0.9rem)] py-[calc(clamp(0.2rem,0.9dvh,0.45rem)+1px)] font-display text-[clamp(0.85rem,min(2vw,2.8dvh),1.15rem)] font-bold tracking-widest whitespace-nowrap text-paper uppercase transition-colors hover:border-paper disabled:cursor-wait disabled:opacity-70"
       >
         {status === "copied" || status === "downloaded" ? <CheckIcon /> : <CopyIcon />}
-        <span className="hidden lg:inline">Copy image</span>
+        <span className="hidden 2xl:inline">Copy image</span>
       </button>
 
       <span

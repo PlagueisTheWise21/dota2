@@ -35,6 +35,8 @@ export type EventDetails = {
   status: string;
   /** e.g. "PGL/Wallachia/9"; null when not linked to Liquipedia. */
   liquipedia_page: string | null;
+  /** 'swiss', 'round_robin', 'gsl', 'other' (set by the sync), or null. */
+  group_format: string | null;
   /** Ordered by `event_teams.seed`, unseeded teams last by name. */
   teams: EventTeam[];
 };
@@ -96,7 +98,7 @@ export async function getEvents(): Promise<EventsResult> {
  * Loads one event and its participating teams for the event page.
  *
  * Supabase tables: `events`, `event_teams`, `teams`
- * Columns read:    `events.id, name, start_date, end_date, prediction_deadline, status, liquipedia_page`,
+ * Columns read:    `events.id, name, start_date, end_date, prediction_deadline, status, liquipedia_page, group_format`,
  *                  `event_teams.seed`,
  *                  `teams.id, name, short_name, logo_url`
  *
@@ -115,7 +117,7 @@ export const getEvent = cache(async (id: string): Promise<EventResult> => {
   const { data, error } = await supabase
     .from("events")
     .select(
-      "id, name, start_date, end_date, prediction_deadline, status, liquipedia_page, event_teams(seed, teams(id, name, short_name, logo_url))",
+      "id, name, start_date, end_date, prediction_deadline, status, liquipedia_page, group_format, event_teams(seed, teams(id, name, short_name, logo_url))",
     )
     .eq("id", id)
     .maybeSingle();
@@ -148,6 +150,7 @@ export const getEvent = cache(async (id: string): Promise<EventResult> => {
       prediction_deadline: row.prediction_deadline,
       status: row.status,
       liquipedia_page: row.liquipedia_page,
+      group_format: row.group_format,
       teams,
     },
     error: null,

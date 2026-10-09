@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Panel } from "@/components/Panel";
 import { SlotBoard, type Slots } from "@/components/SlotBoard";
 import { TeamLogo } from "@/components/TeamLogo";
@@ -8,9 +8,13 @@ import type { EventDetails, EventTeam } from "@/lib/events";
 import {
   grandFinal,
   groupIndexOfSlot,
+  groupName,
+  groupSegments,
+  groupSlotCount,
   realWinner,
   resolveBracket,
   roundNames,
+  roundRobinGroups,
   swissGroups,
   swissPickCorrect,
   type BracketMatch,
@@ -29,33 +33,38 @@ export type PickemState = {
 };
 
 export function initialPickemState(data: PickemData): PickemState {
-  const groups = swissGroups(data.groupTeamIds.length);
-  const slotCount = groups.reduce((sum, group) => sum + group.size, 0);
   return {
-    section: data.groupTeamIds.length > 0 ? "group" : "playoffs",
-    groupSlots: Array.from({ length: data.groupTeamIds.length > 0 ? slotCount : 0 }, () => null),
+    section: data.groupFormat !== null ? "group" : "playoffs",
+    groupSlots: Array.from({ length: groupSlotCount(data) }, () => null),
     bracketPicks: {},
   };
 }
+
+export type StageLocks = { group: boolean; playoffs: boolean };
+export type StageDeadlines = { group: string; playoffs: string };
 
 type PickemsProps = {
   event: EventDetails;
   data: PickemData;
   state: PickemState;
   onChange: (state: PickemState) => void;
+  /** Stages whose deadline has passed: shown, but no longer changeable. */
+  locked: StageLocks;
+  deadlines: StageDeadlines;
 };
 
 /**
- * Pick'em: a group stage section (Swiss, CS-major style picks) and a
- * playoffs section (pick the winner of every bracket match). Data comes from
- * Liquipedia via `npm run sync`. Not saved yet.
+ * Pick'em: a group stage section and a playoffs section (pick the winner of
+ * every bracket match). The group stage depends on the format: Swiss
+ * (CS-major style 3-0 / advance / 0-3) or round-robin (order each group);
+ * other formats show a notice. Data comes from Liquipedia via `npm run sync`.
  */
-export function Pickems({ event, data, state, onChange }: PickemsProps) {
+export function Pickems({ event, data, state, onChange, locked, deadlines }: PickemsProps) {
   const teamsById = useMemo(
     () => new Map(event.teams.map((team) => [team.id, team])),
     [event.teams],
   );
-  const hasGroup = data.groupTeamIds.length > 0;
+  const hasGroup = data.groupFormat !== null;
   const hasPlayoffs = data.bracket.length > 0;
 
   if (!hasGroup && !hasPlayoffs) {
@@ -101,20 +110,39 @@ export function Pickems({ event, data, state, onChange }: PickemsProps) {
 
       <div className="flex min-h-0 w-full flex-1 justify-center">
         {state.section === "group" && hasGroup ? (
-          <GroupStage
-            teams={data.groupTeamIds
-              .map((id) => teamsById.get(id))
-              .filter((team): team is EventTeam => Boolean(team))}
-            data={data}
-            slots={state.groupSlots}
-            onChange={(groupSlots) => onChange({ ...state, groupSlots })}
-          />
+          data.groupFormat === "swiss" ? (
+            <GroupStage
+              teams={data.groupTeamIds
+                .map((id) => teamsById.get(id))
+                .filter((team): team is EventTeam => Boolean(team))}
+              data={data}
+              slots={state.groupSlots}
+              onChange={(groupSlots) => onChange({ ...state, groupSlots })}
+              locked={locked.group}
+              deadline={deadlines.group}
+            />
+          ) : data.groupFormat === "round_robin" ? (
+            <RoundRobinStage
+              data={data}
+              teamsById={teamsById}
+              slots={state.groupSlots}
+              onChange={(groupSlots) => onChange({ ...state, groupSlots })}
+              locked={locked.group}
+              deadline={deadlines.group}
+            />
+          ) : (
+            <Notice title="Group stage">
+              This event&apos;s group stage format isn&apos;t supported for pick&apos;ems yet.
+            </Notice>
+          )
         ) : (
           <Bracket
             matches={data.bracket}
             teamsById={teamsById}
             picks={state.bracketPicks}
             onChange={(bracketPicks) => onChange({ ...state, bracketPicks })}
+            locked={locked.playoffs}
+            deadline={deadlines.playoffs}
           />
         )}
       </div>
@@ -153,11 +181,15 @@ function GroupStage({
   data,
   slots,
   onChange,
+  locked,
+  deadline,
 }: {
   teams: EventTeam[];
   data: PickemData;
   slots: Slots;
   onChange: (slots: Slots) => void;
+  locked: boolean;
+  deadline: string;
 }) {
   const groups = useMemo(() => swissGroups(teams.length), [teams.length]);
   const records = useMemo(
@@ -180,9 +212,9 @@ function GroupStage({
       slots={slots}
       onChange={onChange}
       slotsTitle={
-        data.groupRecords
+        (data.groupRecords
           ? `Your picks · ${correct}/${picked} correct`
-          : `Your picks · ${picked}/${slots.length}`
+          : `Your picks · ${picked}/${slots.length}`) + (locked ? " · locked" : "")
       }
       resultFor={
         data.groupRecords
@@ -193,8 +225,135 @@ function GroupStage({
             }
           : undefined
       }
-      footer="Drag teams into the picks on the left"
+      readOnly={locked}
+      footer={
+        locked
+          ? `Picks locked ${formatDeadline(deadline)}`
+          : `Drag teams into the picks on the left · locks ${formatDeadline(deadline)}`
+      }
     />
+  );
+}
+
+function Notice({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <Panel className="max-w-xl self-start px-8 py-6 text-center">
+      <h2 className="font-display text-2xl font-bold tracking-wide uppercase">{title}</h2>
+      <p className="mt-2 text-sm text-paper/80">{children}</p>
+    </Panel>
+  );
+}
+
+/**
+ * Round-robin group stage: one board per group (switch with Group A / B...),
+ * order its teams 1st to last. Marked right or wrong against the final group
+ * tables once every group match has been played.
+ */
+function RoundRobinStage({
+  data,
+  teamsById,
+  slots,
+  onChange,
+  locked,
+  deadline,
+}: {
+  data: PickemData;
+  teamsById: Map<string, EventTeam>;
+  slots: Slots;
+  onChange: (slots: Slots) => void;
+  locked: boolean;
+  deadline: string;
+}) {
+  const [selected, setSelected] = useState(0);
+
+  if (data.groups.length === 0) {
+    return (
+      <Notice title="Groups not drawn yet">
+        The groups haven&apos;t been drawn yet. They&apos;ll appear here once Liquipedia has the
+        draw; group picks lock {formatDeadline(deadline)}.
+      </Notice>
+    );
+  }
+
+  const segments = groupSegments(data);
+  const current = Math.min(selected, data.groups.length - 1);
+  const group = data.groups[current];
+  const segment = segments[current];
+  const teams = group.teamIds
+    .map((id) => teamsById.get(id))
+    .filter((team): team is EventTeam => Boolean(team));
+  const groupSlots = slots.slice(segment.offset, segment.offset + segment.size);
+  const placements = data.groupPlacements;
+  const picked = groupSlots.filter(Boolean).length;
+  const correct = placements
+    ? groupSlots.filter((id, index) => id && placements[id] === index + 1).length
+    : 0;
+
+  function change(next: Slots) {
+    const all = [...slots];
+    all.splice(segment.offset, segment.size, ...next);
+    onChange(all);
+  }
+
+  return (
+    <div className="flex h-full w-full flex-col items-center gap-[clamp(0.3rem,1dvh,0.6rem)]">
+      <div role="tablist" aria-label="Groups" className="flex border border-paper/30 bg-panel">
+        {data.groups.map((item, index) => {
+          const itemSegment = segments[index];
+          const filled = slots
+            .slice(itemSegment.offset, itemSegment.offset + itemSegment.size)
+            .filter(Boolean).length;
+          return (
+            <button
+              key={item.index}
+              type="button"
+              role="tab"
+              aria-selected={index === current}
+              onClick={() => setSelected(index)}
+              className={`cursor-pointer px-3 py-0.5 font-display text-[clamp(0.7rem,1.6dvh,0.8rem)] font-bold tracking-widest uppercase transition-colors not-last:border-r not-last:border-paper/30 ${
+                index === current ? "bg-[#2a2a2a] text-paper" : "text-paper/50 hover:text-paper"
+              }`}
+            >
+              {groupName(item.index)}
+              <span className="ml-1.5 font-sans text-[0.65rem] font-medium tracking-normal opacity-60">
+                {filled}/{itemSegment.size}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex min-h-0 w-full flex-1 justify-center">
+        <SlotBoard
+          key={group.index}
+          teams={teams}
+          groups={roundRobinGroups(teams.length, group.advance)}
+          slots={groupSlots}
+          onChange={change}
+          slotsTitle={
+            `${groupName(group.index)} · ` +
+            (placements ? `${correct}/${picked} correct` : `${picked}/${segment.size}`) +
+            (locked ? " · locked" : "")
+          }
+          resultFor={
+            placements
+              ? (index, teamId) =>
+                  placements[teamId] === undefined
+                    ? null
+                    : placements[teamId] === index + 1
+                      ? "correct"
+                      : "wrong"
+              : undefined
+          }
+          readOnly={locked}
+          footer={
+            locked
+              ? `Picks locked ${formatDeadline(deadline)}`
+              : `Drag the teams into the order they'll finish · locks ${formatDeadline(deadline)}`
+          }
+        />
+      </div>
+    </div>
   );
 }
 
@@ -205,11 +364,15 @@ function Bracket({
   teamsById,
   picks,
   onChange,
+  locked,
+  deadline,
 }: {
   matches: BracketMatch[];
   teamsById: Map<string, EventTeam>;
   picks: BracketPicks;
   onChange: (picks: BracketPicks) => void;
+  locked: boolean;
+  deadline: string;
 }) {
   const { resolved } = useMemo(() => resolveBracket(matches, picks), [matches, picks]);
   const names = useMemo(() => roundNames(matches), [matches]);
@@ -217,6 +380,7 @@ function Bracket({
   const final = useMemo(() => grandFinal(matches), [matches]);
 
   function pick(matchId: string, teamId: string) {
+    if (locked) return;
     const next = { ...picks };
     if (next[matchId] === teamId) delete next[matchId];
     else next[matchId] = teamId;
@@ -228,6 +392,7 @@ function Bracket({
   const finishedPicked = [...resolved.values()].filter((r) => r.pick && realWinner(r.match));
   const correct = finishedPicked.filter((r) => r.pick === realWinner(r.match)).length;
   const pickedCount = [...resolved.values()].filter((r) => r.pick).length;
+  const noTeamsYet = [...resolved.values()].every((r) => !r.teams[0] && !r.teams[1]);
 
   const sectionRow = (section: "upper" | "lower") => {
     const hasAny = matches.some((m) => m.section === section);
@@ -253,6 +418,7 @@ function Bracket({
                   entry={resolved.get(m.id)!}
                   teamsById={teamsById}
                   onPick={(teamId) => pick(m.id, teamId)}
+                  readOnly={locked}
                 />
               ))}
           </div>
@@ -264,7 +430,13 @@ function Bracket({
   return (
     <div className="flex h-full w-full flex-col items-center gap-2 overflow-auto">
       <div className="flex w-full max-w-5xl flex-wrap items-center justify-between gap-2 text-xs text-paper/70">
-        <span>Click a team to pick the winner of each match.</span>
+        <span>
+          {locked
+            ? `Picks locked ${formatDeadline(deadline)}`
+            : noTeamsYet
+              ? `Playoff picks open once the group stage decides the teams · locks ${formatDeadline(deadline)}`
+              : `Click a team to pick the winner of each match · locks ${formatDeadline(deadline)}`}
+        </span>
         <span>
           {pickedCount}/{matches.length} picked
           {finishedPicked.length > 0 && ` · ${correct}/${finishedPicked.length} correct`}
@@ -303,10 +475,12 @@ function MatchCard({
   entry,
   teamsById,
   onPick,
+  readOnly,
 }: {
   entry: ResolvedMatch;
   teamsById: Map<string, EventTeam>;
   onPick: (teamId: string) => void;
+  readOnly: boolean;
 }) {
   const winner = realWinner(entry.match);
   return (
@@ -319,9 +493,9 @@ function MatchCard({
           <button
             key={index}
             type="button"
-            disabled={!team}
+            disabled={!team || readOnly}
             onClick={() => team && onPick(team.id)}
-            title={team ? `Pick ${team.name}` : "Decided by an earlier pick"}
+            title={team ? (readOnly ? team.name : `Pick ${team.name}`) : "Decided by an earlier pick"}
             className={`flex h-[clamp(1.6rem,3.6dvh,2rem)] w-full cursor-pointer items-center gap-2 px-2 text-left text-[clamp(0.7rem,1.6dvh,0.8rem)] transition-colors disabled:cursor-default ${
               index === 1 ? "border-t border-paper/30" : ""
             } ${
@@ -351,4 +525,17 @@ function MatchCard({
       })}
     </div>
   );
+}
+
+const deadlineFormat = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: "UTC",
+});
+
+/** "22 Oct, 08:00 UTC" */
+function formatDeadline(iso: string): string {
+  return `${deadlineFormat.format(new Date(iso))} UTC`;
 }

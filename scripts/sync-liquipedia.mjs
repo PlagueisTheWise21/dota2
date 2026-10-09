@@ -16,7 +16,7 @@
  *                     are created without a logo (add one, then `npm run logos`)
  *   event_teams       every participating team
  *   matches           group stage and playoff bracket, with bracket links
- *   group_standings   the group table after every round
+ *   group_standings   the group table after every round, with each team's group
  *   event_placements  final placements (e.g. 9-11)
  *
  * Needs in .env.local (server only, never NEXT_PUBLIC_):
@@ -231,6 +231,19 @@ async function main() {
   const t = lp.tournament;
   console.log(`  ${t.name}: ${t.startdate} to ${t.enddate}, ${t.participantsnumber} teams, ${lp.matches.length} matches`);
 
+  // --- Group stage format ---
+  const formatText = String(t.format ?? "").toLowerCase();
+  const groupFormat = formatText.includes("swiss")
+    ? "swiss"
+    : formatText.includes("round-robin") || formatText.includes("round robin")
+      ? "round_robin"
+      : formatText.includes("gsl")
+        ? "gsl"
+        : lp.matches.some((m) => m.match2bracketdata?.type !== "bracket")
+          ? "other"
+          : null;
+  console.log(`  group stage format: ${groupFormat ?? "none"} ("${t.format ?? ""}")`);
+
   // --- Event ---
   let event = check("events", await db.from("events").select("*").eq("liquipedia_page", pageName).maybeSingle());
   if (!event && eventIdArg) {
@@ -249,6 +262,7 @@ async function main() {
       prediction_deadline: `${t.startdate}T00:00:00Z`,
       status,
       liquipedia_page: pageName,
+      group_format: groupFormat,
     };
     console.log(`  event: creating "${t.name}" (${status}; no banner, add image_url in the dashboard)`);
     event = dryRun
@@ -256,6 +270,9 @@ async function main() {
       : check("create event", await db.from("events").insert(newEvent).select().single());
   } else {
     console.log(`  event: updating "${event.name}"`);
+  }
+  if (!dryRun && event.group_format !== groupFormat) {
+    check("group format", await db.from("events").update({ group_format: groupFormat }).eq("id", event.id));
   }
 
   // --- Teams ---
@@ -274,13 +291,14 @@ async function main() {
 
   const allTeams = check("teams", await db.from("teams").select("id, name, short_name, liquipedia_template"));
   const lower = (s) => (s ?? "").trim().toLowerCase();
+  const plain = (s) => lower(s).replace(/\s*\([^)]*\)\s*$/, "");
   const teamIdByTemplate = new Map();
   const created = [];
   for (const [template, info] of opponents) {
-    const names = [info.name, info.page, info.bracketname].map(lower).filter(Boolean);
+    const names = [info.name, info.page, info.bracketname].map(plain).filter(Boolean);
     let team =
       allTeams.find((x) => x.liquipedia_template === template) ??
-      allTeams.find((x) => names.includes(lower(x.name)));
+      allTeams.find((x) => names.includes(plain(x.name)));
     if (!team && info.shortname) {
       const sameShort = allTeams.filter((x) => lower(x.short_name) === lower(info.shortname));
       if (sameShort.length === 1) team = sameShort[0];
@@ -361,6 +379,7 @@ async function main() {
       event_id: event.id,
       team_id: teamId(s.opponenttemplate),
       round: asInt(s.roundindex) ?? 0,
+      group_index: asInt(s.standingsindex) ?? 0,
       placement: asInt(s.placement),
       wins: asInt(s.scoreboard?.match?.w) ?? 0,
       losses: asInt(s.scoreboard?.match?.l) ?? 0,
