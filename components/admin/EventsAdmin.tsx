@@ -41,7 +41,7 @@ const GROUP_FORMATS: [string, string][] = [
   ["", "None / not set"],
   ["swiss", "Swiss"],
   ["round_robin", "Round-robin groups"],
-  ["gsl", "GSL groups (pick'em not supported)"],
+  ["gsl", "GSL groups"],
   ["other", "Other (pick'em not supported)"],
 ];
 

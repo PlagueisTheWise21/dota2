@@ -4,15 +4,32 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AccountButton } from "@/components/AccountButton";
 import { CopyImageButton } from "@/components/CopyImageButton";
+import { Leaderboard } from "@/components/Leaderboard";
 import { Panel } from "@/components/Panel";
-import { Pickems, initialPickemState, type PickemState } from "@/components/Pickems";
+import {
+  Pickems,
+  initialPickemState,
+  type PickemState,
+} from "@/components/Pickems";
 import type { Slots } from "@/components/SlotBoard";
-import { TierList, initialPlacements, type Placements } from "@/components/TierList";
+import {
+  TierList,
+  initialPlacements,
+  type Placements,
+} from "@/components/TierList";
 import { useAuth } from "@/components/useAuth";
-import { useDebouncedSave, type SaveStatus } from "@/components/useDebouncedSave";
+import {
+  useDebouncedSave,
+  type SaveStatus,
+} from "@/components/useDebouncedSave";
 import { useNow } from "@/components/useNow";
 import type { EventDetails } from "@/lib/events";
-import { groupBoards, renderBracketPng, renderGroupPickemPng } from "@/lib/pickem-image";
+import type { Leaderboard as LeaderboardData } from "@/lib/leaderboard";
+import {
+  groupBoards,
+  renderBracketPng,
+  renderGroupPickemPng,
+} from "@/lib/pickem-image";
 import {
   groupSegments,
   resolveBracket,
@@ -33,6 +50,7 @@ import { renderTierListPng } from "@/lib/tier-image";
 const SECTIONS = [
   { id: "tier-list", label: "Tier List" },
   { id: "pickems", label: "Pick'em" },
+  { id: "leaderboard", label: "Leaderboard", shortLabel: "Ranks" },
 ] as const;
 
 type SectionId = (typeof SECTIONS)[number]["id"];
@@ -41,6 +59,8 @@ type EventViewProps = {
   event: EventDetails;
   /** Group stage and bracket from Liquipedia (lib/pickem-data.ts). */
   pickemData: PickemData;
+  /** Everyone's pick'em scores (lib/leaderboard.ts). */
+  leaderboard: LeaderboardData;
 };
 
 /**
@@ -52,7 +72,7 @@ type EventViewProps = {
  * pick'ems load from and save to Supabase (lib/saved-picks.ts); each pick'em
  * stage locks at its deadline (also enforced by the database).
  */
-export function EventView({ event, pickemData }: EventViewProps) {
+export function EventView({ event, pickemData, leaderboard }: EventViewProps) {
   const [section, setSection] = useState<SectionId>("tier-list");
   const [placements, setPlacements] = useState<Placements>(() =>
     initialPlacements(event.teams),
@@ -112,18 +132,28 @@ export function EventView({ event, pickemData }: EventViewProps) {
         const segments = groupSegments(pickemData);
         const groupSource = savedPicks.group ?? stash?.groupSlots ?? null;
         const group =
-          groupSource && segments.length > 0 ? cleanGroupPicks(groupSource, segments) : null;
-        const playoffsSource = savedPicks.playoffs ?? stash?.bracketPicks ?? null;
+          groupSource && segments.length > 0
+            ? cleanGroupPicks(groupSource, segments)
+            : null;
+        const playoffsSource =
+          savedPicks.playoffs ?? stash?.bracketPicks ?? null;
         const playoffs =
-          playoffsSource && bracket.length > 0 ? resolveBracket(bracket, playoffsSource).picks : null;
+          playoffsSource && bracket.length > 0
+            ? resolveBracket(bracket, playoffsSource).picks
+            : null;
 
         setPickems((current) => ({
           ...current,
           groupSlots: group ?? current.groupSlots,
           bracketPicks: playoffs ?? current.bracketPicks,
         }));
-        if (group && !savedPicks.group && nowMs < Date.parse(groupDeadline)) scheduleGroup(group);
-        if (playoffs && !savedPicks.playoffs && nowMs < Date.parse(playoffsDeadline)) {
+        if (group && !savedPicks.group && nowMs < Date.parse(groupDeadline))
+          scheduleGroup(group);
+        if (
+          playoffs &&
+          !savedPicks.playoffs &&
+          nowMs < Date.parse(playoffsDeadline)
+        ) {
           schedulePlayoffs(playoffs);
         }
       })
@@ -154,7 +184,11 @@ export function EventView({ event, pickemData }: EventViewProps) {
     if (userId && !locked.group && next.groupSlots !== pickems.groupSlots) {
       scheduleGroup(next.groupSlots);
     }
-    if (userId && !locked.playoffs && next.bracketPicks !== pickems.bracketPicks) {
+    if (
+      userId &&
+      !locked.playoffs &&
+      next.bracketPicks !== pickems.bracketPicks
+    ) {
       schedulePlayoffs(next.bracketPicks);
     }
     setPickems(next);
@@ -169,14 +203,66 @@ export function EventView({ event, pickemData }: EventViewProps) {
     void auth.signIn();
   }
 
-  const saveStatus = combineStatus([tierSaver.status, groupSaver.status, playoffsSaver.status]);
+  const saveStatus = combineStatus([
+    tierSaver.status,
+    groupSaver.status,
+    playoffsSaver.status,
+  ]);
+
+  // "Copy image" for whichever board is showing; it sits under the board.
+  let copyButton = null;
+  if (section === "tier-list" && event.teams.length > 0) {
+    copyButton = (
+      <CopyImageButton
+        what="tier list"
+        fileName={`${fileSlug(event.name)}-tier-list.png`}
+        render={() => renderTierListPng(event.name, event.teams, placements)}
+      />
+    );
+  } else if (
+    section === "pickems" &&
+    pickems.section === "group" &&
+    groupSegments(pickemData).length > 0
+  ) {
+    copyButton = (
+      <CopyImageButton
+        what="group stage pick'em"
+        fileName={`${fileSlug(event.name)}-pickem-group-stage.png`}
+        render={() =>
+          renderGroupPickemPng(
+            event.name,
+            groupBoards(event.teams, pickemData, pickems.groupSlots),
+          )
+        }
+      />
+    );
+  } else if (
+    section === "pickems" &&
+    pickems.section === "playoffs" &&
+    pickemData.bracket.length > 0
+  ) {
+    copyButton = (
+      <CopyImageButton
+        what="playoff pick'em"
+        fileName={`${fileSlug(event.name)}-pickem-playoffs.png`}
+        render={() =>
+          renderBracketPng(
+            event.name,
+            event.teams,
+            pickemData.bracket,
+            pickems.bracketPicks,
+          )
+        }
+      />
+    );
+  }
 
   return (
     <main className="flex h-dvh w-full flex-col items-center gap-[clamp(0.5rem,2dvh,1.25rem)] overflow-hidden px-4 py-[clamp(0.5rem,2.5dvh,1.5rem)] sm:px-8">
       {/* Phones and tablets: title on top, home button and controls below.
-          Laptops and up: home button | title | controls on one row. */}
-      <header className="grid w-full max-w-6xl grid-cols-[auto_1fr] items-center gap-x-4 gap-y-2 lg:grid-cols-[auto_1fr_auto]">
-        <Panel className="col-span-2 px-6 py-[clamp(0.3rem,1.2dvh,0.75rem)] text-center lg:col-span-1 lg:col-start-2 lg:row-start-1 lg:max-w-xl lg:justify-self-center">
+          Wide screens (1280px+): home button | title | controls on one row. */}
+      <header className="grid w-full max-w-7xl grid-cols-[auto_1fr] items-center gap-x-4 gap-y-2 xl:grid-cols-[1fr_auto_1fr]">
+        <Panel className="col-span-2 px-6 py-[clamp(0.3rem,1.2dvh,0.75rem)] text-center xl:col-span-1 xl:col-start-2 xl:row-start-1 xl:max-w-xl xl:justify-self-center">
           <h1 className="font-display text-[clamp(1.2rem,min(3.2vw,5dvh),2.1rem)] leading-tight font-bold tracking-wide uppercase">
             {event.name}
           </h1>
@@ -187,7 +273,7 @@ export function EventView({ event, pickemData }: EventViewProps) {
           </p>
         </Panel>
 
-        <div className="flex items-stretch gap-3 justify-self-start lg:col-start-1 lg:row-start-1">
+        <div className="flex items-stretch gap-3 justify-self-start xl:col-start-1 xl:row-start-1">
           <Link
             href="/"
             aria-label="Home"
@@ -209,40 +295,7 @@ export function EventView({ event, pickemData }: EventViewProps) {
           )}
         </div>
 
-        <div className="flex items-stretch gap-3 justify-self-end lg:col-start-3 lg:row-start-1">
-          {event.teams.length > 0 && section === "tier-list" && (
-            <CopyImageButton
-              what="tier list"
-              fileName={`${fileSlug(event.name)}-tier-list.png`}
-              render={() => renderTierListPng(event.name, event.teams, placements)}
-            />
-          )}
-          {section === "pickems" &&
-            pickems.section === "group" &&
-            groupSegments(pickemData).length > 0 && (
-              <CopyImageButton
-                what="group stage pick'em"
-                fileName={`${fileSlug(event.name)}-pickem-group-stage.png`}
-                render={() =>
-                  renderGroupPickemPng(
-                    event.name,
-                    groupBoards(event.teams, pickemData, pickems.groupSlots),
-                  )
-                }
-              />
-            )}
-          {section === "pickems" &&
-            pickems.section === "playoffs" &&
-            pickemData.bracket.length > 0 && (
-              <CopyImageButton
-                what="playoff pick'em"
-                fileName={`${fileSlug(event.name)}-pickem-playoffs.png`}
-                render={() =>
-                  renderBracketPng(event.name, event.teams, pickemData.bracket, pickems.bracketPicks)
-                }
-              />
-            )}
-
+        <div className="flex items-stretch gap-3 justify-self-end xl:col-start-3 xl:row-start-1">
           <div
             role="tablist"
             aria-label="Event sections"
@@ -259,13 +312,20 @@ export function EventView({ event, pickemData }: EventViewProps) {
                   aria-selected={selected}
                   aria-controls={`panel-${item.id}`}
                   onClick={() => setSection(item.id)}
-                  className={`cursor-pointer px-[clamp(0.9rem,3vw,1.75rem)] py-[calc(clamp(0.2rem,0.9dvh,0.45rem)+1px)] font-display text-[clamp(0.85rem,min(2vw,2.8dvh),1.15rem)] font-bold tracking-widest whitespace-nowrap uppercase transition-colors not-last:border-r not-last:border-paper/30 ${
+                  className={`cursor-pointer px-[clamp(0.75rem,1.6vw,1.1rem)] py-[calc(clamp(0.2rem,0.9dvh,0.45rem)+1px)] font-display text-[clamp(0.85rem,min(2vw,2.8dvh),1.15rem)] font-bold tracking-widest whitespace-nowrap uppercase transition-colors not-last:border-r not-last:border-paper/30 ${
                     selected
                       ? "bg-[#2a2a2a] text-paper shadow-[inset_0_-3px_0_0_#e8ecf1]"
                       : "text-paper/50 hover:text-paper"
                   }`}
                 >
-                  {item.label}
+                  {"shortLabel" in item ? (
+                    <>
+                      <span className="sm:hidden">{item.shortLabel}</span>
+                      <span className="hidden sm:inline">{item.label}</span>
+                    </>
+                  ) : (
+                    item.label
+                  )}
                 </button>
               );
             })}
@@ -277,24 +337,42 @@ export function EventView({ event, pickemData }: EventViewProps) {
         id={`panel-${section}`}
         role="tabpanel"
         aria-labelledby={`tab-${section}`}
-        className="flex min-h-0 w-full flex-1 justify-center"
+        className="flex min-h-0 w-full flex-1 flex-col items-center gap-[clamp(0.4rem,1.5dvh,0.9rem)]"
       >
-        {section === "tier-list" ? (
-          <TierList
-            teams={event.teams}
-            placements={placements}
-            onChange={changePlacements}
-          />
-        ) : (
-          <Pickems
-            event={event}
-            data={pickemData}
-            state={pickems}
-            onChange={changePickems}
-            locked={locked}
-            deadlines={{ group: groupDeadline, playoffs: playoffsDeadline }}
-          />
-        )}
+        {/* The board fills the space above "Copy image". Positioned absolutely so
+            its height is fixed for the boards inside (Safari doesn't pass a
+            flex-sized height down two levels of flex boxes). */}
+        <div className="relative min-h-0 w-full flex-1">
+          <div className="absolute inset-0 flex justify-center">
+            {section === "tier-list" ? (
+              <TierList
+                teams={event.teams}
+                placements={placements}
+                onChange={changePlacements}
+              />
+            ) : section === "leaderboard" ? (
+              <Leaderboard
+                leaderboard={leaderboard}
+                teams={event.teams}
+                currentUserId={userId}
+                groupDeadline={groupDeadline}
+                playoffsDeadline={playoffsDeadline}
+                now={now}
+              />
+            ) : (
+              <Pickems
+                event={event}
+                data={pickemData}
+                state={pickems}
+                onChange={changePickems}
+                locked={locked}
+                deadlines={{ group: groupDeadline, playoffs: playoffsDeadline }}
+              />
+            )}
+          </div>
+        </div>
+
+        {copyButton}
       </section>
     </main>
   );
@@ -357,12 +435,19 @@ function combineStatus(statuses: SaveStatus[]): SaveStatus {
   return "idle";
 }
 
-type Stash = { placements: Placements; groupSlots: Slots; bracketPicks: BracketPicks };
+type Stash = {
+  placements: Placements;
+  groupSlots: Slots;
+  bracketPicks: BracketPicks;
+};
 
 /** Keeps picks through the Twitch sign-in redirect (this browser tab only). */
 function putStash(eventId: string, stash: Stash) {
   try {
-    sessionStorage.setItem(`picks-before-sign-in:${eventId}`, JSON.stringify(stash));
+    sessionStorage.setItem(
+      `picks-before-sign-in:${eventId}`,
+      JSON.stringify(stash),
+    );
   } catch {
     // Storage blocked (private mode etc.): the picks are simply not carried over.
   }

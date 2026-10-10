@@ -31,10 +31,18 @@ export type BracketMatch = {
 /** A team's final group stage record. */
 export type GroupRecord = { teamId: string; wins: number; losses: number };
 
-/** One round-robin group: its teams and how many of them advance. */
-export type GroupInfo = { index: number; teamIds: string[]; advance: number };
+/**
+ * One group (round-robin or GSL): its teams, how many places go straight
+ * through, and how many more stay alive in a later stage (Liquipedia "stay",
+ * e.g. BLAST's Last Chance).
+ */
+export type GroupInfo = { index: number; teamIds: string[]; advance: number; continues: number };
 
-export type GroupFormat = "swiss" | "round_robin" | "unsupported";
+/**
+ * Which group stage pick'em: "swiss" (3-0 / advance / 0-3 boxes) or
+ * "groups" (order each group's teams; round-robin and GSL groups).
+ */
+export type GroupFormat = "swiss" | "groups" | "unsupported";
 
 export type PickemData = {
   /** Which group stage pick'em to show; null when there is no group stage. */
@@ -43,9 +51,9 @@ export type PickemData = {
   groupTeamIds: string[];
   /** Swiss: final records, only once every team has finished. */
   groupRecords: GroupRecord[] | null;
-  /** Round-robin: the groups, empty until they have been drawn. */
+  /** Groups: the groups, empty until they have been drawn. */
   groups: GroupInfo[];
-  /** Round-robin: each team's final place in its group, once all group matches are played. */
+  /** Groups: each team's final place in its group, once all group matches are played. */
   groupPlacements: Record<string, number> | null;
   /** Playoff matches; empty when there is no bracket. */
   bracket: BracketMatch[];
@@ -69,15 +77,16 @@ export function swissGroups(teamCount: number): SlotGroup[] {
 }
 
 /**
- * Round-robin pick'em for one group: order its teams 1st to last. The top
- * `advance` places go through; the rest are out.
+ * Pick'em for one group: order its teams 1st to last. The top `advance`
+ * places go through, the next `continues` stay alive in a later stage, the
+ * rest are out.
  */
-export function roundRobinGroups(size: number, advance: number): SlotGroup[] {
+export function groupPlaces(size: number, advance: number, continues = 0): SlotGroup[] {
   return Array.from({ length: size }, (_, index) => ({
     label: ordinal(index + 1),
-    sublabel: index < advance ? "advance" : "out",
+    sublabel: index < advance ? "advance" : index < advance + continues ? "continues" : "out",
     size: 1,
-    color: index < advance ? undefined : "#ef4444",
+    color: index < advance ? undefined : index < advance + continues ? "#eab308" : "#ef4444",
   }));
 }
 
@@ -93,14 +102,14 @@ function ordinal(n: number): string {
 
 /**
  * How the saved group picks array is split up: Swiss is one block of slots
- * (3-0, advance, 0-3); round-robin has one block per group (1st..last).
+ * (3-0, advance, 0-3); groups have one block per group (1st..last).
  */
 export function groupSegments(data: PickemData): { offset: number; size: number; teamIds: string[] }[] {
   if (data.groupFormat === "swiss") {
     const size = swissGroups(data.groupTeamIds.length).reduce((sum, group) => sum + group.size, 0);
     return data.groupTeamIds.length > 0 ? [{ offset: 0, size, teamIds: data.groupTeamIds }] : [];
   }
-  if (data.groupFormat === "round_robin") {
+  if (data.groupFormat === "groups") {
     let offset = 0;
     return data.groups.map((group) => {
       const segment = { offset, size: group.teamIds.length, teamIds: group.teamIds };

@@ -73,6 +73,7 @@ export function AccountButton({ ready, profile, saveStatus, isAdmin = false, onS
         aria-haspopup="menu"
         aria-expanded={menuOpen}
         title={`Signed in as ${profile.display_name}`}
+        aria-label={`Account: ${profile.display_name}`}
         className={`${base} normal-case tracking-normal`}
       >
         {profile.avatar_url ? (
@@ -85,9 +86,6 @@ export function AccountButton({ ready, profile, saveStatus, isAdmin = false, onS
         ) : (
           <TwitchIcon />
         )}
-        <span className="hidden max-w-[10rem] truncate text-[0.85em] xl:inline">
-          {profile.display_name}
-        </span>
       </button>
 
       {status && !menuOpen && (

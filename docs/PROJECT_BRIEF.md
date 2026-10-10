@@ -115,13 +115,16 @@ Do not over-engineer.
     - Group Stage, by `events.group_format`:
       - Swiss (CS-major style): pick 2 teams to go 3–0, 6 to advance (3–1/3–2)
         and 2 to go 0–3. Marked right/wrong from the final records.
-      - Round-robin: Group A / B switch; order each group's teams 1st..last
-        (top N marked advance, the rest out, N from Liquipedia's "up" places).
-        Marked right/wrong against the final group tables once every group
-        match is played. "Groups not drawn yet" until the draw is synced.
-      - Other formats (GSL...): "not supported yet" notice.
+      - Round-robin and GSL groups (pick'em kind "groups"): Group A / B...
+        switch; order each group's teams 1st..last. Places are marked
+        advance (Liquipedia "up"), continues (amber, "stay", e.g. BLAST's
+        Last Chance) or out. Marked right/wrong against the final group
+        tables once every match inside the groups is played (games between
+        teams from different groups, like seeding matches, don't count).
+        "Groups not drawn yet" until the draw is synced. GSL added 10 October 2026.
+      - Other formats: "not supported yet" notice.
       - Boards use `components/SlotBoard.tsx`; layout helpers in `lib/pickems.ts`
-        (`swissGroups`, `roundRobinGroups`, `groupSegments`).
+        (`swissGroups`, `groupPlaces`, `groupSegments`).
     - Playoffs: double-elimination bracket from `matches`; click a team to pick
       each winner; picks fill later rounds, losers drop via `loser_to`, and
       picks made impossible by a change are cleared. Finished matches show
@@ -142,8 +145,16 @@ Do not over-engineer.
   service role's default grants were restored in `20261008b_service_role_grants.sql`.
   Group formats: the sync stores `events.group_format` (from Liquipedia's
   format text) and `group_standings.group_index`. Names ignore bracketed
-  suffixes ("LEGION (stack)" = "LEGION"). Synced so far:
+  suffixes ("LEGION (stack)" = "LEGION"). Playoffs = the event's main
+  bracket (most matches); side brackets such as BLAST's "Seeding Match" and
+  "Last Chance" count as group stage (10 October 2026). Loser routes come from
+  `KNOWN_LOSER_ROUTES` in `lib/liquipedia-sync.mjs` for known Liquipedia
+  templates: `Bracket/8U4L2DSL1D` (8-team double elim) and
+  `Bracket/4L2DSU4L1D` (6-team double elim, top 2 seeds start in the upper
+  semifinals); other templates use the generic rule. Played matches correct
+  routes either way. Synced so far:
   - PGL Wallachia Season 9: Swiss + 8-team double elim (finished).
+  - BLAST Slam VIII (`BLAST/SLAM/8`): four GSL groups of 4 + 6-team double elim.
   - PARI Universe (`PARI_Universe/1`, linked to the owner's event
     8892f17d-...): two round-robin groups of 5, top 4 advance, then 8-team
     double elim. Group picks lock 22 Oct 08:00 UTC (deadline corrected by the
@@ -162,6 +173,17 @@ Do not over-engineer.
   database enforces the same deadlines. Pick'ems become public after the
   deadline (owner's choice); tier lists stay private. Twitch avatars shown.
   Supabase URL configuration allows the live domain and localhost:3000.
+- Pick'em leaderboard (built 10 October 2026): third event page tab
+  "Leaderboard" ("Ranks" on phones), `components/Leaderboard.tsx`, scored on
+  the server by `lib/leaderboard.ts` from `saved_pickems` + `profiles`. A pick
+  scores exactly when the pick'em shows it with a ✓: 1 point per group stage
+  pick (Swiss box / exact round-robin place) and 1 per playoff winner
+  (`POINTS` in `lib/leaderboard.ts`). Rows only appear once a stage's
+  deadline has passed (row level security), so the table fills in when group
+  picks lock and again when playoff picks lock. Equal totals share a rank;
+  shows each player's champion pick and highlights the signed-in player. No
+  database changes. Not yet: an overall leaderboard across events, viewing
+  another player's picks.
 - Admin panel (built 9 October 2026; Phase 8 first version): `/admin`
   (`app/admin/page.tsx`, `components/admin/`, data in `lib/admin.ts`).
   Admins are the accounts in `public.admins` (checked by `public.is_admin()`);
@@ -212,8 +234,11 @@ Do not over-engineer.
   offset shadow. The owner prefers dark backgrounds with light text over the
   original light content boxes. The event page has a Home button (house icon +
   "Home", icon only on phones) in the same style instead of "← Events". The
-  Copy image button and the Tier List / Predictions switch match it; the
-  selected tab has a lighter background and a light bar along its bottom.
+  Tier List / Pick'em / Leaderboard switch matches it; the selected tab has a
+  lighter background and a light bar along its bottom. Signed in, the account
+  button is just the Twitch avatar in a square (name in its menu). "Copy
+  image" sits centred under the tier list or pick'em board (10 October 2026,
+  owner's request to declutter the header).
 - Team cards (tier list, its copied image) and team boxes (predictions) share
   one look, chosen by the owner: dark `#202020` box, 1px light outline at 60%
   (full on hover/drag), light text, thin light line between logo and name.
@@ -248,12 +273,9 @@ Do not over-engineer.
 - New tables need both a grant and an RLS policy, or queries fail with
   "permission denied for table ...".
 
-### Owner wants later (requested 8 October 2026; not started)
-- Pick'em leaderboards: score everyone's group stage and playoff picks
-  against the real results (`group_standings`, `matches`) and rank users per
-  event, and possibly overall. Needs saved pick'ems first.
-- (Twitch sign-in and saved picks are now built; see "Built".) Leaderboards
-  can score `saved_pickems` against `group_standings` and `matches`.
+### Owner wants later
+- Per-event pick'em leaderboards are built (see "Built"); an overall
+  leaderboard across events is still open.
 
 ### Suggested later (not agreed yet)
 - `events.slug`: add a unique constraint (Phase 2).

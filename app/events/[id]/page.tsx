@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EventView } from "@/components/EventView";
 import { getEvent } from "@/lib/events";
+import { getLeaderboard } from "@/lib/leaderboard";
 import { getPickemData } from "@/lib/pickem-data";
 
 // Always read the event from Supabase on request, so dashboard edits show up
@@ -39,5 +40,6 @@ export default async function EventPage({ params }: PageProps<"/events/[id]">) {
   }
 
   const pickemData = await getPickemData(event.id, event.group_format);
-  return <EventView event={event} pickemData={pickemData} />;
+  const leaderboard = await getLeaderboard(event.id, pickemData);
+  return <EventView event={event} pickemData={pickemData} leaderboard={leaderboard} />;
 }

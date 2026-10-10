@@ -27,7 +27,7 @@ import {
   realWinner,
   resolveBracket,
   roundNames,
-  roundRobinGroups,
+  groupPlaces,
   swissGroups,
   swissPickCorrect,
   type PickemData,
@@ -113,7 +113,7 @@ const GROUP_LABEL = 84;
 const BOARD_TITLE = 26;
 const BOARD_GAP = 26;
 
-/** One board of group picks (Swiss has one; round-robin one per group). */
+/** One board of group picks (Swiss has one; round-robin/GSL one per group). */
 export type GroupBoard = {
   /** Shown above the board, e.g. "Group A"; none for Swiss. */
   title?: string;
@@ -149,13 +149,13 @@ export function groupBoards(teams: EventTeam[], data: PickemData, slots: Slots):
     ];
   }
 
-  if (data.groupFormat === "round_robin") {
+  if (data.groupFormat === "groups") {
     const segments = groupSegments(data);
     const placements = data.groupPlacements;
     return data.groups.map((group, index) => ({
       title: groupName(group.index),
       teams: pick(group.teamIds),
-      groups: roundRobinGroups(group.teamIds.length, group.advance),
+      groups: groupPlaces(group.teamIds.length, group.advance, group.continues),
       slots: slots.slice(segments[index].offset, segments[index].offset + segments[index].size),
       resultFor: placements
         ? (slot: number, teamId: string) =>

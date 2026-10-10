@@ -60,16 +60,16 @@ export const getPickemData = cache(async (
   const format: GroupFormat | null =
     groupMatches.length === 0
       ? null
-      : groupFormat === "round_robin"
-        ? "round_robin"
+      : groupFormat === "round_robin" || groupFormat === "gsl"
+        ? "groups"
         : groupFormat === "swiss" || groupFormat === null
           ? "swiss"
           : "unsupported";
 
-  // Round-robin groups, from the earliest round of the group tables.
+  // Round-robin and GSL groups, from the earliest round of the group tables.
   const groups: GroupInfo[] = [];
   let groupPlacements: Record<string, number> | null = null;
-  if (format === "round_robin" && standings.length > 0) {
+  if (format === "groups" && standings.length > 0) {
     const firstRound = Math.min(...standings.map((row) => row.round));
     const byGroup = new Map<number, typeof standings>();
     for (const row of standings.filter((r) => r.round === firstRound)) {
@@ -79,11 +79,21 @@ export const getPickemData = cache(async (
       groups.push({
         index,
         teamIds: groupRows.map((row) => row.team_id),
-        // Liquipedia marks the places that go through as "up".
+        // Liquipedia marks the places that go through as "up", and places
+        // that play on in a later stage (e.g. a last chance bracket) as "stay".
         advance: groupRows.filter((row) => row.status === "up").length || Math.ceil(groupRows.length / 2),
+        continues: groupRows.filter((row) => row.status === "stay").length,
       });
     }
-    const allPlayed = groupMatches.every((row) => row.finished);
+    // Every match inside the groups is played. Matches between teams from
+    // different groups (seeding or last chance games) don't count.
+    const groupOf = new Map(groups.flatMap((group) => group.teamIds.map((id) => [id, group.index] as const)));
+    const crossGroup = (row: { team1_id: string | null; team2_id: string | null }) =>
+      Boolean(row.team1_id && row.team2_id) &&
+      groupOf.has(row.team1_id!) &&
+      groupOf.has(row.team2_id!) &&
+      groupOf.get(row.team1_id!) !== groupOf.get(row.team2_id!);
+    const allPlayed = groupMatches.filter((row) => !crossGroup(row)).every((row) => row.finished);
     if (allPlayed) {
       const lastRound = new Map<string, { round: number; placement: number | null }>();
       for (const row of standings) {

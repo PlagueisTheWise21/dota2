@@ -106,7 +106,7 @@ export function cleanTierList(saved: Placements, teamIds: string[]): Placements 
 
 /**
  * Saved group picks checked against the current groups: each block of slots
- * (one for Swiss, one per round-robin group) only keeps that block's teams.
+ * (one for Swiss, one per round-robin/GSL group) only keeps that block's teams.
  */
 export function cleanGroupPicks(
   saved: Slots,

@@ -14,7 +14,7 @@ import {
   realWinner,
   resolveBracket,
   roundNames,
-  roundRobinGroups,
+  groupPlaces,
   swissGroups,
   swissPickCorrect,
   type BracketMatch,
@@ -56,7 +56,7 @@ type PickemsProps = {
 /**
  * Pick'em: a group stage section and a playoffs section (pick the winner of
  * every bracket match). The group stage depends on the format: Swiss
- * (CS-major style 3-0 / advance / 0-3) or round-robin (order each group);
+ * (CS-major style 3-0 / advance / 0-3) or groups (round-robin or GSL: order each group);
  * other formats show a notice. Data comes from Liquipedia via `npm run sync`.
  */
 export function Pickems({ event, data, state, onChange, locked, deadlines }: PickemsProps) {
@@ -121,8 +121,8 @@ export function Pickems({ event, data, state, onChange, locked, deadlines }: Pic
               locked={locked.group}
               deadline={deadlines.group}
             />
-          ) : data.groupFormat === "round_robin" ? (
-            <RoundRobinStage
+          ) : data.groupFormat === "groups" ? (
+            <GroupsStage
               data={data}
               teamsById={teamsById}
               slots={state.groupSlots}
@@ -245,11 +245,11 @@ function Notice({ title, children }: { title: string; children: ReactNode }) {
 }
 
 /**
- * Round-robin group stage: one board per group (switch with Group A / B...),
+ * Round-robin or GSL group stage: one board per group (switch with Group A / B...),
  * order its teams 1st to last. Marked right or wrong against the final group
  * tables once every group match has been played.
  */
-function RoundRobinStage({
+function GroupsStage({
   data,
   teamsById,
   slots,
@@ -327,7 +327,7 @@ function RoundRobinStage({
         <SlotBoard
           key={group.index}
           teams={teams}
-          groups={roundRobinGroups(teams.length, group.advance)}
+          groups={groupPlaces(teams.length, group.advance, group.continues)}
           slots={groupSlots}
           onChange={change}
           slotsTitle={

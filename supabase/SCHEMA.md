@@ -157,5 +157,7 @@ Both buckets: images only, admins upload/replace/delete (`20261010_admin.sql`).
   deadline) and `group_standings`.
 - Saved picks (`lib/saved-picks.ts`, browser, signed in): `saved_tier_lists`,
   `saved_pickems`; `profiles` for the header (`components/useAuth.ts`).
+- Leaderboard (`lib/leaderboard.ts`, server, signed out): `saved_pickems.user_id, stage, picks`
+  with `profiles.display_name, avatar_url` (only rows past their deadline are visible).
 - Admin page (`lib/admin.ts`): all columns of `events` and `teams`, `event_teams`,
   and `matches.updated_at` / `starts_at` (last sync, automatic playoff deadline).
