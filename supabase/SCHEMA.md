@@ -141,6 +141,14 @@ Created by `supabase/migrations/20261010_admin.sql`.
   matches, group_standings, event_placements and team ids inside
   saved_tier_lists/saved_pickems to p_keep, then deletes p_remove.
 
+## Site settings (agreed 10 October 2026)
+Created by `supabase/migrations/20261010c_site_settings.sql`.
+- `site_settings`: one row (`id` = 1): `site_title` (text, default
+  'Dota 2 Predictions & Tier Lists'), `favicon_url` (text, null = default icon),
+  `updated_at`. Everyone reads; admins update.
+- Storage bucket `site-assets` (public, images up to 1 MB): the tab icon.
+  The admin image policies now cover team-logos, event-banners and site-assets.
+
 ## What the code reads today
 - Homepage (`lib/events.ts`, `getEvents`): `events.id, name, image_url, start_date, end_date`; status and order worked out from the dates (`lib/event-status.ts`).
 - Event page (`lib/events.ts`, `getEvent`): `events.id, name, start_date, end_date, prediction_deadline, playoff_deadline, liquipedia_page, group_format` (status from the dates),
@@ -162,5 +170,6 @@ Both buckets: images only, admins upload/replace/delete (`20261010_admin.sql`).
   `saved_pickems`; `profiles` for the header (`components/useAuth.ts`).
 - Leaderboard (`lib/leaderboard.ts`, server, signed out): `saved_pickems.user_id, stage, picks`
   with `profiles.display_name, avatar_url` (only rows past their deadline are visible).
+- Every page (`lib/site-settings.ts`, `app/layout.tsx`): `site_settings.site_title, favicon_url`.
 - Admin page (`lib/admin.ts`): all columns of `events` and `teams`, `event_teams`,
   and `matches.updated_at` / `starts_at` (last sync, automatic playoff deadline).

@@ -3,17 +3,19 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { EventsAdmin } from "@/components/admin/EventsAdmin";
+import { SiteAdmin } from "@/components/admin/SiteAdmin";
 import { TeamsAdmin } from "@/components/admin/TeamsAdmin";
 import { Button, errorText } from "@/components/admin/ui";
 import { Panel } from "@/components/Panel";
 import { useAuth } from "@/components/useAuth";
 import { loadAdminData, refreshPublicPages, type AdminData } from "@/lib/admin";
 
-type Tab = "events" | "teams";
+type Tab = "events" | "teams" | "site";
 
 /**
  * The admin page: events (details, deadlines, banner, teams, Liquipedia
- * sync) and teams (names, logos, merging duplicates).
+ * sync), teams (names, logos, merging duplicates) and site settings (tab
+ * title and icon).
  * Only admins see it; the database refuses changes from anyone else anyway.
  */
 export function AdminApp() {
@@ -97,7 +99,7 @@ export function AdminApp() {
           </Panel>
         </div>
         <nav className="flex" aria-label="Admin sections">
-          {(["events", "teams"] as const).map((name) => (
+          {(["events", "teams", "site"] as const).map((name) => (
             <button
               key={name}
               type="button"
@@ -119,8 +121,10 @@ export function AdminApp() {
         <p className="text-paper/60">Loading...</p>
       ) : tab === "events" ? (
         <EventsAdmin data={data} reload={reload} />
-      ) : (
+      ) : tab === "teams" ? (
         <TeamsAdmin data={data} reload={reload} />
+      ) : (
+        <SiteAdmin reload={reload} />
       )}
     </main>
   );

@@ -26,7 +26,8 @@ export async function generateMetadata({
 }: PageProps<"/events/[id]">): Promise<Metadata> {
   const { id } = await params;
   const { event } = await getEvent(id);
-  return { title: event ? `${event.name} | Dota 2 Predictions` : undefined };
+  // The layout adds " | <site title>" (admin Site settings).
+  return { title: event ? event.name : undefined };
 }
 
 export default async function EventPage({ params }: PageProps<"/events/[id]">) {

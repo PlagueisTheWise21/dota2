@@ -65,6 +65,31 @@ export async function logoFromSavedUrl(url: string): Promise<Blob> {
   return logoBlob(await loadLogoImage(url));
 }
 
+/** Size of the uploaded tab icon (browsers show 16-32px; this stays sharp). */
+const FAVICON_SIZE = 128;
+
+/**
+ * A tab icon chosen on the admin page: the whole image fitted into a
+ * FAVICON_SIZE square with see-through edges, as PNG (browsers handle PNG
+ * icons everywhere).
+ */
+export async function faviconFromFile(file: File): Promise<Blob> {
+  const image = await fileToImage(file);
+  const canvas = document.createElement("canvas");
+  canvas.width = FAVICON_SIZE;
+  canvas.height = FAVICON_SIZE;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("The image could not be converted.");
+  const scale = Math.min(FAVICON_SIZE / image.naturalWidth, FAVICON_SIZE / image.naturalHeight);
+  const width = image.naturalWidth * scale;
+  const height = image.naturalHeight * scale;
+  context.imageSmoothingQuality = "high";
+  context.drawImage(image, (FAVICON_SIZE - width) / 2, (FAVICON_SIZE - height) / 2, width, height);
+  return new Promise((resolve, reject) =>
+    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("The image could not be converted."))), "image/png"),
+  );
+}
+
 /** A banner file chosen on the admin page, shrunk to BANNER_WIDTH px wide. */
 export async function bannerFromFile(file: File): Promise<Blob> {
   const image = await fileToImage(file);

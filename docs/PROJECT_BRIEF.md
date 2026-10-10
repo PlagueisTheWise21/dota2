@@ -232,6 +232,14 @@ style to a modern dark theme:
     re-syncs when the last sync (`events.last_synced_at`, set by every sync)
     is over 30 minutes old, from a day before the start to a day after the
     end. No cron needed; it only syncs while people view the event.
+  - Site settings (10 October 2026; `supabase/migrations/20261010c_site_settings.sql`,
+    `components/admin/SiteAdmin.tsx`, `lib/site-settings.ts`): "Site" tab sets
+    the browser tab title (`site_settings.site_title`; pages show
+    "Page | title", the homepage just the title) and tab icon (uploaded to
+    bucket `site-assets` as a 128px PNG, `site_settings.favicon_url`; null =
+    `public/favicon.ico`, moved out of `app/` so it no longer overrides the
+    setting). Read by `generateMetadata` in `app/layout.tsx`. The homepage
+    header name is still the `SITE_NAME` constant in `app/page.tsx`.
   - Later options (not agreed yet): manual result fixes, event visibility/homepage order, homepage text,
     pick'em stats, users list, change log, health check.
 - The owner has a Liquipedia API key, for Phase 9. It must go in `.env.local`

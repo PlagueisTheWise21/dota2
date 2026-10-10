@@ -184,7 +184,7 @@ export async function mergeTeams(keepId: string, removeId: string) {
 
 // --- Images -------------------------------------------------------------------
 
-export type ImageBucket = "team-logos" | "event-banners";
+export type ImageBucket = "team-logos" | "event-banners" | "site-assets";
 
 /** Uploads an image under a new name and returns its public URL. */
 export async function uploadImage(bucket: ImageBucket, baseName: string, image: Blob): Promise<string> {
@@ -213,6 +213,25 @@ export async function removeOwnImage(bucket: ImageBucket, url: string | null) {
 export function isOwnImage(bucket: ImageBucket, url: string | null): boolean {
   if (!url || !supabase) return false;
   return url.startsWith(supabase.storage.from(bucket).getPublicUrl("").data.publicUrl);
+}
+
+// --- Site settings ----------------------------------------------------------------
+
+export type SiteSettingsInput = { site_title: string; favicon_url: string | null };
+
+/** The one row of `site_settings` (tab title and icon). */
+export async function loadSiteSettings(): Promise<SiteSettingsInput> {
+  const row = check(
+    await db().from("site_settings").select("site_title, favicon_url").eq("id", 1).maybeSingle(),
+  ) as SiteSettingsInput | null;
+  if (!row) throw new Error("Site settings are missing. Run supabase/migrations/20261010c_site_settings.sql.");
+  return row;
+}
+
+export async function saveSiteSettings(changes: Partial<SiteSettingsInput>): Promise<SiteSettingsInput> {
+  return check(
+    await db().from("site_settings").update(changes).eq("id", 1).select("site_title, favicon_url").single(),
+  ) as SiteSettingsInput;
 }
 
 // --- Public page cache -----------------------------------------------------------
