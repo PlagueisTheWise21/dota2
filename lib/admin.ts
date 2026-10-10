@@ -215,6 +215,23 @@ export function isOwnImage(bucket: ImageBucket, url: string | null): boolean {
   return url.startsWith(supabase.storage.from(bucket).getPublicUrl("").data.publicUrl);
 }
 
+// --- Public page cache -----------------------------------------------------------
+
+/**
+ * Clears the cached homepage and event pages (app/api/revalidate/route.ts) so
+ * a change shows on the site straight away. Never throws.
+ */
+export async function refreshPublicPages() {
+  try {
+    const { data } = await db().auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) return;
+    await fetch("/api/revalidate", { method: "POST", headers: { Authorization: `Bearer ${token}` } });
+  } catch {
+    // The pages refresh on their own within a minute anyway.
+  }
+}
+
 // --- Liquipedia sync ------------------------------------------------------------
 
 export type SyncResult = {

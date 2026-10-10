@@ -7,7 +7,7 @@ import { TeamsAdmin } from "@/components/admin/TeamsAdmin";
 import { Button, errorText } from "@/components/admin/ui";
 import { Panel } from "@/components/Panel";
 import { useAuth } from "@/components/useAuth";
-import { loadAdminData, type AdminData } from "@/lib/admin";
+import { loadAdminData, refreshPublicPages, type AdminData } from "@/lib/admin";
 
 type Tab = "events" | "teams";
 
@@ -22,7 +22,10 @@ export function AdminApp() {
   const [data, setData] = useState<AdminData | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  // Called after every change: reload the admin data, and clear the cached
+  // public pages so the change shows on the site straight away.
   const reload = useCallback(async () => {
+    void refreshPublicPages();
     try {
       setData(await loadAdminData());
       setLoadError(null);

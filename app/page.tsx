@@ -5,9 +5,10 @@ import { LocalTime } from "@/components/LocalTime";
 import { StatusTag } from "@/components/StatusTag";
 import { getEvents, type EventSummary } from "@/lib/events";
 
-// Always read events from Supabase on request, so dashboard edits show up
-// without rebuilding the site.
-export const dynamic = "force-dynamic";
+// Cached on Vercel's network and rebuilt at most once a minute, so the page
+// loads fast worldwide. Admin changes clear the cache straight away
+// (app/api/revalidate/route.ts).
+export const revalidate = 60;
 
 // Edit the homepage wording here.
 const SITE_NAME = "Dota 2 Predictions";

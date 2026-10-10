@@ -56,6 +56,7 @@ export function TeamsAdmin({ data, reload }: { data: AdminData; reload: () => Pr
     <div className="grid gap-5 lg:grid-cols-[18rem_1fr]">
       <aside className="flex flex-col gap-3">
         <Button onClick={() => setSelectedId("new")}>+ New team</Button>
+        <FastCopyAll teams={data.teams} reload={reload} />
         <TextInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search teams" />
         <Select value={filter} onChange={(e) => setFilter(e.target.value as Filter)} aria-label="Show">
           {FILTERS.map(([value, label]) => (
@@ -299,5 +300,51 @@ function TeamEditor({
         </div>
       )}
     </Section>
+  );
+}
+
+/**
+ * Converts every logo still stored on another site into a fast copy in the
+ * team-logos bucket (trimmed 256px WebP), one team at a time.
+ */
+function FastCopyAll({ teams, reload }: { teams: AdminTeam[]; reload: () => Promise<void> }) {
+  const slow = teams.filter((team) => team.logo_url && !isOwnImage("team-logos", team.logo_url));
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [failed, setFailed] = useState<string[]>([]);
+
+  if (slow.length === 0 && !progress) {
+    return <p className="text-xs text-muted/70">Every logo loads fast.</p>;
+  }
+
+  async function run() {
+    setFailed([]);
+    setProgress({ done: 0, total: slow.length });
+    const problems: string[] = [];
+    for (const [index, team] of slow.entries()) {
+      try {
+        const image = await logoFromSavedUrl(team.logo_url!);
+        const url = await uploadImage("team-logos", team.name, image);
+        await saveTeam(team.id, { name: team.name, short_name: team.short_name, logo_url: url });
+      } catch {
+        problems.push(team.name);
+      }
+      setProgress({ done: index + 1, total: slow.length });
+    }
+    setFailed(problems);
+    setProgress(null);
+    await reload();
+  }
+
+  return (
+    <div className="flex flex-col gap-1">
+      <Button onClick={() => void run()} disabled={progress !== null} title="Trims each logo and stores a copy on this site">
+        {progress ? `Copying ${progress.done}/${progress.total}...` : `Make fast copies (${slow.length})`}
+      </Button>
+      {failed.length > 0 && (
+        <p className="text-xs text-[#f87171]">
+          Couldn&apos;t copy: {failed.join(", ")}. Their sites may block downloads; upload those logos by hand.
+        </p>
+      )}
+    </div>
   );
 }

@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { revalidatePath } from "next/cache";
 import { fetchLiquipedia, normalisePage, syncTournament } from "@/lib/liquipedia-sync.mjs";
 
 /**
@@ -75,6 +76,8 @@ export async function POST(request: Request) {
       log: (line: string) => log.push(line),
     });
     log.push(dryRun ? "Preview only: nothing was written." : "Done.");
+    // Show the new data on the (cached) homepage and event pages straight away.
+    if (!dryRun) revalidatePath("/", "layout");
     return Response.json({ ok: true, eventId: dryRun ? null : result.eventId, createdTeams: result.createdTeams, log });
   } catch (reason) {
     const message = reason instanceof Error ? reason.message : String(reason);

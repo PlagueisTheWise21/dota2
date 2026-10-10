@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { AccountButton } from "@/components/AccountButton";
 import { CopyImageButton } from "@/components/CopyImageButton";
 import { Leaderboard } from "@/components/Leaderboard";
@@ -62,9 +62,18 @@ type EventViewProps = {
   pickemData: PickemData;
   /** Everyone's pick'em scores (lib/leaderboard.ts). */
   leaderboard: LeaderboardData;
-  /** Tab to open on (from ?tab= in the URL, e.g. the homepage buttons). */
-  initialSection?: SectionId;
 };
+
+/**
+ * The tab named by ?tab= in the URL (the homepage buttons link to
+ * ?tab=pickems and ?tab=leaderboard). Read in the browser, because the page
+ * itself is cached and the same for every URL.
+ */
+function urlSection(): SectionId {
+  const tab = new URLSearchParams(window.location.search).get("tab");
+  return tab === "pickems" || tab === "leaderboard" ? tab : "tier-list";
+}
+const noSubscribe = () => () => {};
 
 /**
  * The event page: title, then a switch between the tier list and the
@@ -75,8 +84,11 @@ type EventViewProps = {
  * pick'ems load from and save to Supabase (lib/saved-picks.ts); each pick'em
  * stage locks at its deadline (also enforced by the database).
  */
-export function EventView({ event, pickemData, leaderboard, initialSection = "tier-list" }: EventViewProps) {
-  const [section, setSection] = useState<SectionId>(initialSection);
+export function EventView({ event, pickemData, leaderboard }: EventViewProps) {
+  // Starts on the tab from the URL; clicking a tab takes over from there.
+  const fromUrl = useSyncExternalStore(noSubscribe, urlSection, () => "tier-list" as SectionId);
+  const [chosen, setSection] = useState<SectionId | null>(null);
+  const section = chosen ?? fromUrl;
   const [placements, setPlacements] = useState<Placements>(() =>
     initialPlacements(event.teams),
   );

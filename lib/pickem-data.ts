@@ -16,6 +16,30 @@ import { supabase } from "@/lib/supabase";
  * `groupFormat` is `events.group_format` (set by the sync). Returns empty data
  * when the event has no Liquipedia data.
  */
+/**
+ * The two queries, cached per request so preloadPickemData can start them
+ * early (in parallel with loading the event) and getPickemData reuses them.
+ */
+const loadPickemRows = cache(async (eventId: string) =>
+  Promise.all([
+    supabase!
+      .from("matches")
+      .select(
+        "liquipedia_id, stage, bracket_section, round, match_number, team1_id, team2_id, score1, score2, winner, finished, starts_at, winner_to, winner_to_slot, loser_to, loser_to_slot",
+      )
+      .eq("event_id", eventId),
+    supabase!
+      .from("group_standings")
+      .select("team_id, round, wins, losses, placement, status, group_index")
+      .eq("event_id", eventId),
+  ]),
+);
+
+/** Starts the pick'em queries without waiting (call before other awaits). */
+export function preloadPickemData(eventId: string) {
+  if (supabase) void loadPickemRows(eventId);
+}
+
 export const getPickemData = cache(async (
   eventId: string,
   groupFormat: string | null,
@@ -30,18 +54,7 @@ export const getPickemData = cache(async (
   };
   if (!supabase) return empty;
 
-  const [matchesResult, standingsResult] = await Promise.all([
-    supabase
-      .from("matches")
-      .select(
-        "liquipedia_id, stage, bracket_section, round, match_number, team1_id, team2_id, score1, score2, winner, finished, starts_at, winner_to, winner_to_slot, loser_to, loser_to_slot",
-      )
-      .eq("event_id", eventId),
-    supabase
-      .from("group_standings")
-      .select("team_id, round, wins, losses, placement, status, group_index")
-      .eq("event_id", eventId),
-  ]);
+  const [matchesResult, standingsResult] = await loadPickemRows(eventId);
 
   if (matchesResult.error || standingsResult.error) {
     console.error(

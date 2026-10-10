@@ -65,6 +65,11 @@ type EventRow = Omit<EventDetails, "teams" | "status"> & {
   event_teams: { seed: number | null; teams: EventTeam | null }[];
 };
 
+/** True for a well-formed event id (uuid); anything else can't be an event. */
+export function isEventId(id: string): boolean {
+  return UUID_PATTERN.test(id);
+}
+
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

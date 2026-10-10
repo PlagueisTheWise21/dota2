@@ -275,6 +275,20 @@ style to a modern dark theme:
   opens on what's on now: the first event is featured, the rest listed beside it.
   Status pills: `components/StatusTag.tsx` (live has a pulsing red dot). The event page
   header shows the same status.
+- Speed (10 October 2026):
+  - Homepage and event pages are cached on Vercel's network (`revalidate = 60`;
+    event pages via `generateStaticParams` returning [] so each is built on
+    first visit). Admin changes call `app/api/revalidate/route.ts` (admins
+    only) and manual syncs call `revalidatePath`, so edits show at once;
+    automatic syncs show within about a minute. `?tab=` is read in the browser
+    (`EventView`), since cached pages can't read the URL on the server.
+  - The event page starts its queries in parallel (`preloadPickemData`,
+    `preloadLeaderboard`).
+  - Loading spinner on navigation (`app/loading.tsx`,
+    `app/events/[id]/loading.tsx`, `components/LoadingScreen.tsx`).
+  - Admin Teams: "Make fast copies" converts every logo hosted elsewhere into
+    the `team-logos` bucket in one go.
+  - Vercel's function region matches the Supabase region (set by the owner).
 - Event data in Supabase is demo data for testing, not accurate.
 
 ### Confirmed

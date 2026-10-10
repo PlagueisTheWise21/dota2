@@ -12,6 +12,7 @@ import {
   type PickemData,
 } from "@/lib/pickems";
 import { cleanGroupPicks } from "@/lib/saved-picks";
+import { cache } from "react";
 import { supabase } from "@/lib/supabase";
 
 /**
@@ -87,15 +88,22 @@ type SavedRow = {
 };
 
 /** The event's leaderboard (server side). Empty before the group deadline. */
+/** Everyone's visible saved pick'ems for the event, cached per request. */
+const loadSavedPickems = cache(async (eventId: string) =>
+  supabase!.from("saved_pickems").select("user_id, stage, picks, profiles(display_name, avatar_url)").eq("event_id", eventId),
+);
+
+/** Starts the leaderboard query without waiting (call before other awaits). */
+export function preloadLeaderboard(eventId: string) {
+  if (supabase) void loadSavedPickems(eventId);
+}
+
 export async function getLeaderboard(eventId: string, data: PickemData): Promise<Leaderboard> {
   const scoring =
     Boolean(data.groupRecords || data.groupPlacements) || data.bracket.some((match) => realWinner(match));
   if (!supabase) return { entries: [], scoring };
 
-  const { data: rows, error } = await supabase
-    .from("saved_pickems")
-    .select("user_id, stage, picks, profiles(display_name, avatar_url)")
-    .eq("event_id", eventId);
+  const { data: rows, error } = await loadSavedPickems(eventId);
   if (error) {
     console.error("Failed to load the leaderboard:", error.message);
     return { entries: [], scoring };

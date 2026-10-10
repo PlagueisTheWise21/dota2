@@ -4,13 +4,19 @@ import { notFound } from "next/navigation";
 import { after } from "next/server";
 import { EventView } from "@/components/EventView";
 import { maybeAutoSync } from "@/lib/auto-sync";
-import { getEvent } from "@/lib/events";
-import { getLeaderboard } from "@/lib/leaderboard";
-import { getPickemData } from "@/lib/pickem-data";
+import { getEvent, isEventId } from "@/lib/events";
+import { getLeaderboard, preloadLeaderboard } from "@/lib/leaderboard";
+import { getPickemData, preloadPickemData } from "@/lib/pickem-data";
 
-// Always read the event from Supabase on request, so dashboard edits show up
-// without rebuilding the site.
-export const dynamic = "force-dynamic";
+// Cached on Vercel's network and rebuilt at most once a minute, so event
+// pages load fast worldwide. Each event is built the first time it's opened
+// (no list at build time). Admin changes and manual syncs clear the cache
+// straight away (app/api/revalidate/route.ts, app/api/admin/sync/route.ts).
+export const revalidate = 60;
+
+export async function generateStaticParams() {
+  return [];
+}
 
 // Room for an automatic Liquipedia sync after the page is sent.
 export const maxDuration = 60;
@@ -23,10 +29,14 @@ export async function generateMetadata({
   return { title: event ? `${event.name} | Dota 2 Predictions` : undefined };
 }
 
-export default async function EventPage({ params, searchParams }: PageProps<"/events/[id]">) {
+export default async function EventPage({ params }: PageProps<"/events/[id]">) {
   const { id } = await params;
-  const { tab } = await searchParams;
-  const initialSection = tab === "pickems" || tab === "leaderboard" ? tab : "tier-list";
+
+  // Start every query at once instead of one after another.
+  if (isEventId(id)) {
+    preloadPickemData(id);
+    preloadLeaderboard(id);
+  }
   const { event, error } = await getEvent(id);
 
   if (error) {
@@ -53,6 +63,6 @@ export default async function EventPage({ params, searchParams }: PageProps<"/ev
   const pickemData = await getPickemData(event.id, event.group_format);
   const leaderboard = await getLeaderboard(event.id, pickemData);
   return (
-    <EventView event={event} pickemData={pickemData} leaderboard={leaderboard} initialSection={initialSection} />
+    <EventView event={event} pickemData={pickemData} leaderboard={leaderboard} />
   );
 }
