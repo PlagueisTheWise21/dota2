@@ -138,7 +138,7 @@ export function SlotBoard({
       >
         {/* Slots */}
         <div
-          className="shadow-offset grid min-w-0 flex-[1.4] border-[3px] border-black bg-panel"
+          className="shadow-offset grid min-w-0 flex-[1.4] overflow-hidden rounded-xl border border-accent/30 bg-panel"
           style={{
             gridTemplateColumns: "clamp(3.25rem, 9vw, 5rem) 1fr",
             gridTemplateRows: rowsCss(slotCount),
@@ -153,8 +153,8 @@ export function SlotBoard({
             return [
               <div
                 key={`label-${group.label}`}
-                className={`flex flex-col items-center justify-center border-r-2 border-black px-1 text-center leading-tight ${
-                  group.color ? "text-black" : "bg-[#2a2a2a] text-paper"
+                className={`flex flex-col items-center justify-center border-r-2 border-ink px-1 text-center leading-tight ${
+                  group.color ? "text-black" : "bg-card-hover text-paper"
                 } ${lastGroup ? "" : "border-b-2"}`}
                 style={{
                   gridColumn: 1,
@@ -181,7 +181,7 @@ export function SlotBoard({
                     key={`slot-${index}`}
                     data-slot={index}
                     style={{ gridColumn: 2 }}
-                    className={`min-h-0 border-black p-[3px] transition-colors ${
+                    className={`min-h-0 border-ink p-[3px] transition-colors ${
                       lastInGroup
                         ? lastGroup
                           ? ""
@@ -204,7 +204,7 @@ export function SlotBoard({
         {/* Teams still to place */}
         <div
           data-pool
-          className={`shadow-offset grid min-w-0 flex-1 content-start border-[3px] border-black transition-colors ${
+          className={`shadow-offset grid min-w-0 flex-1 content-start overflow-hidden rounded-xl border border-accent/30 transition-colors ${
             drag?.target?.kind === "pool" ? "bg-[#222]" : "bg-panel"
           }`}
           style={{ gridTemplateRows: rowsCss(teams.length), height: shareOfHeight(teams.length) }}
@@ -260,7 +260,7 @@ function HeaderCell({
 }) {
   return (
     <div
-      className={`flex items-center border-b-2 border-black bg-[#2a2a2a] px-2 font-display text-xs font-bold tracking-widest text-paper/70 uppercase ${className}`}
+      className={`flex items-center border-b-2 border-ink bg-card-hover px-2 font-display text-xs font-bold tracking-widest text-paper/70 uppercase ${className}`}
     >
       {children}
     </div>

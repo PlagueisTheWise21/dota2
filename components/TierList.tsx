@@ -179,7 +179,7 @@ export function TierList({ teams, placements, onChange }: TierListProps) {
 
   if (teams.length === 0) {
     return (
-      <p className="self-start border-2 border-black bg-panel px-6 py-4 text-center text-sm text-paper/80">
+      <p className="self-start rounded-xl border border-accent/30 bg-panel px-6 py-4 text-center text-sm text-paper/80">
         No teams have been added to this event yet.
       </p>
     );
@@ -264,11 +264,11 @@ function TierBoard({
       <div
         key={tier}
         data-tier-drop={tier}
-        className="flex border-black not-last:border-b-2"
+        className="flex border-ink not-last:border-b-2"
         style={{ minHeight: BASE.rowMinHeight * scale }}
       >
         <div
-          className="flex shrink-0 items-center justify-center border-r-2 border-black"
+          className="flex shrink-0 items-center justify-center border-r-2 border-ink"
           style={{ width: BASE.label * scale, backgroundColor: color }}
         >
           {label}
@@ -299,7 +299,7 @@ function TierBoard({
 
   return (
     <div className="flex shrink-0 flex-col self-start" style={{ width }}>
-      <div className="shadow-offset border-black" style={boxStyle}>
+      <div className="shadow-offset overflow-hidden rounded-xl border-ink" style={boxStyle}>
         {TIERS.map((tier) =>
           renderRow(
             tier.id,
@@ -315,7 +315,7 @@ function TierBoard({
       </div>
 
       <div
-        className="shadow-offset border-black"
+        className="shadow-offset overflow-hidden rounded-xl border-ink"
         style={{ ...boxStyle, marginTop: BASE.sectionGap * scale }}
       >
         {renderRow(
@@ -326,7 +326,7 @@ function TierBoard({
           >
             Unranked
           </span>,
-          "#2a2a2a",
+          "#15363c",
         )}
       </div>
     </div>
@@ -357,12 +357,12 @@ function TierCard({ team, scale, dimmed, lifted, onPointerDown }: TierCardProps)
     <div
       onPointerDown={onPointerDown}
       title={team.name}
-      className={`flex flex-col overflow-hidden border bg-[#202020] text-paper ${
+      className={`flex flex-col overflow-hidden rounded-md border bg-card text-paper ${
         lifted
-          ? "border-paper shadow-[6px_6px_0_0_rgba(0,0,0,0.9)]"
-          : "border-paper/60 shadow-[2px_2px_0_0_#000]"
+          ? "border-accent shadow-xl shadow-black/60"
+          : "border-accent/40 shadow-md shadow-black/40"
       } ${
-        interactive ? "cursor-grab touch-none transition-colors hover:border-paper" : ""
+        interactive ? "cursor-grab touch-none transition-colors hover:border-accent" : ""
       } ${dimmed ? "opacity-30" : ""}`}
       style={{ width: BASE.cardWidth * scale, height: BASE.cardHeight * scale }}
     >
@@ -373,7 +373,7 @@ function TierCard({ team, scale, dimmed, lifted, onPointerDown }: TierCardProps)
         <TeamLogo team={team} fallbackStyle={{ fontSize: 18 * scale }} />
       </div>
       <p
-        className="flex min-h-0 flex-1 items-center justify-center border-t border-paper/30 leading-none font-semibold"
+        className="flex min-h-0 flex-1 items-center justify-center border-t border-accent/20 leading-none font-semibold"
         style={{
           fontSize: Math.max(8, BASE.nameFont * scale),
           paddingInline: 3 * scale,

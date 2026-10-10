@@ -41,7 +41,7 @@ export function AccountButton({ ready, profile, saveStatus, isAdmin = false, onS
   }, [menuOpen]);
 
   const base =
-    "shadow-offset flex h-full cursor-pointer items-center gap-2 border-2 border-paper/60 bg-panel px-[clamp(0.6rem,1.5vw,0.9rem)] py-[calc(clamp(0.2rem,0.9dvh,0.45rem)+1px)] font-display text-[clamp(0.85rem,min(2vw,2.8dvh),1.15rem)] font-bold tracking-widest whitespace-nowrap text-paper uppercase transition-colors hover:border-paper";
+    "shadow-offset rounded-xl flex h-full cursor-pointer items-center gap-2 border border-accent/40 bg-panel px-[clamp(0.6rem,1.5vw,0.9rem)] py-[calc(clamp(0.2rem,0.9dvh,0.45rem)+1px)] font-display text-[clamp(0.85rem,min(2vw,2.8dvh),1.15rem)] font-bold tracking-widest whitespace-nowrap text-paper uppercase transition-colors hover:border-accent";
 
   if (!ready) {
     // Keeps the space while the session is checked, without flashing "Sign in".
@@ -81,7 +81,7 @@ export function AccountButton({ ready, profile, saveStatus, isAdmin = false, onS
           <img
             src={profile.avatar_url}
             alt=""
-            className="h-[1.4em] w-[1.4em] border border-paper/40 object-cover"
+            className="h-[1.4em] w-[1.4em] border border-accent/30 object-cover"
           />
         ) : (
           <TwitchIcon />
@@ -102,7 +102,7 @@ export function AccountButton({ ready, profile, saveStatus, isAdmin = false, onS
       {menuOpen && (
         <div
           role="menu"
-          className="shadow-offset absolute top-full left-0 z-40 mt-2 min-w-[12rem] border-2 border-paper/60 bg-panel p-1 text-sm"
+          className="shadow-offset rounded-xl absolute top-full left-0 z-40 mt-2 min-w-[12rem] border border-accent/40 bg-panel p-1 text-sm"
         >
           <p className="px-3 py-2 text-xs text-paper/60">
             Signed in as <span className="font-semibold text-paper">{profile.display_name}</span>
@@ -111,7 +111,7 @@ export function AccountButton({ ready, profile, saveStatus, isAdmin = false, onS
             <Link
               href="/admin"
               role="menuitem"
-              className="block w-full px-3 py-2 text-left font-display font-bold tracking-widest text-paper uppercase hover:bg-[#2a2a2a]"
+              className="block w-full px-3 py-2 text-left font-display font-bold tracking-widest text-paper uppercase hover:bg-card-hover"
             >
               Admin panel
             </Link>
@@ -123,7 +123,7 @@ export function AccountButton({ ready, profile, saveStatus, isAdmin = false, onS
               setMenuOpen(false);
               onSignOut();
             }}
-            className="w-full cursor-pointer px-3 py-2 text-left font-display font-bold tracking-widest text-paper uppercase hover:bg-[#2a2a2a]"
+            className="w-full cursor-pointer px-3 py-2 text-left font-display font-bold tracking-widest text-paper uppercase hover:bg-card-hover"
           >
             Sign out
           </button>

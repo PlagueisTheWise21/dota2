@@ -23,14 +23,16 @@ export async function generateMetadata({
   return { title: event ? `${event.name} | Dota 2 Predictions` : undefined };
 }
 
-export default async function EventPage({ params }: PageProps<"/events/[id]">) {
+export default async function EventPage({ params, searchParams }: PageProps<"/events/[id]">) {
   const { id } = await params;
+  const { tab } = await searchParams;
+  const initialSection = tab === "pickems" || tab === "leaderboard" ? tab : "tier-list";
   const { event, error } = await getEvent(id);
 
   if (error) {
     return (
       <main className="flex min-h-dvh w-full flex-col items-center justify-center gap-6 px-4">
-        <p className="max-w-xl border-2 border-black bg-panel px-6 py-4 text-center text-sm text-paper/80">
+        <p className="max-w-xl rounded-xl border border-accent/30 bg-panel px-6 py-4 text-center text-sm text-paper/80">
           {error}
         </p>
         <Link href="/" className="text-sm text-paper/70 underline hover:text-paper">
@@ -50,5 +52,7 @@ export default async function EventPage({ params }: PageProps<"/events/[id]">) {
 
   const pickemData = await getPickemData(event.id, event.group_format);
   const leaderboard = await getLeaderboard(event.id, pickemData);
-  return <EventView event={event} pickemData={pickemData} leaderboard={leaderboard} />;
+  return (
+    <EventView event={event} pickemData={pickemData} leaderboard={leaderboard} initialSection={initialSection} />
+  );
 }

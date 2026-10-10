@@ -90,13 +90,13 @@ export function SyncPanel({
       </p>
 
       {event && (
-        <div className="flex flex-col gap-1 border-t border-paper/20 pt-3">
+        <div className="flex flex-col gap-1 border-t border-accent/15 pt-3">
           <label className="flex cursor-pointer items-center gap-2 text-sm">
             <input
               type="checkbox"
               checked={autoSync}
               onChange={(e) => void changeAutoSync(e.target.checked)}
-              className="h-4 w-4 accent-[#e8ecf1]"
+              className="h-4 w-4 accent-[#1d9e75]"
             />
             Sync automatically while the event is live
           </label>

@@ -10,8 +10,12 @@ export type EventSummary = {
   image_url: string | null;
   start_date: string;
   end_date: string;
+  /** When group stage picks lock. */
+  prediction_deadline: string;
   /** From the dates (lib/event-status.ts), not the `status` column. */
   status: EventStatus;
+  /** Group stage picks still open (deadline in the future). */
+  picksOpen: boolean;
 };
 
 export type EventsResult = {
@@ -81,7 +85,7 @@ function notConfiguredMessage(): string {
  * Loads events for the homepage carousel.
  *
  * Supabase table: `events`
- * Columns read:   `id`, `name`, `image_url`, `start_date`, `end_date`
+ * Columns read:   `id`, `name`, `image_url`, `start_date`, `end_date`, `prediction_deadline`
  * Ordered by:     live first (newest first), then upcoming (soonest first),
  *                 then finished (most recently ended first)
  */
@@ -92,7 +96,7 @@ export async function getEvents(): Promise<EventsResult> {
 
   const { data, error } = await supabase
     .from("events")
-    .select("id, name, image_url, start_date, end_date");
+    .select("id, name, image_url, start_date, end_date, prediction_deadline");
 
   if (error) {
     console.error("Failed to load events:", error.message);
@@ -101,7 +105,11 @@ export async function getEvents(): Promise<EventsResult> {
 
   const now = Date.now();
   const events = (data ?? [])
-    .map((row) => ({ ...row, status: eventStatus(row.start_date, row.end_date, now) }))
+    .map((row) => ({
+      ...row,
+      status: eventStatus(row.start_date, row.end_date, now),
+      picksOpen: Date.parse(row.prediction_deadline) > now,
+    }))
     .sort(compareEvents) as EventSummary[];
   return { events, error: null };
 }

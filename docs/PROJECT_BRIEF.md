@@ -37,24 +37,35 @@ Not yet: Twitch login, login screens, predictions, leaderboards, the full event 
 Do not over-engineer.
 
 ## Design language
-- Dark esports / Dota 2 feel; a dedicated community site, not a generic dashboard.
-- Page background about `#0b0b0b`, never a flat single colour: barely visible Dota
-  text as texture. Dark greys for panels.
-- Light content boxes on the dark page, black borders, strong rectangular shapes,
-  slight solid offset shadows, large centred headings, blue/grey text on light boxes.
-- Clean layouts, strong contrast, minimal UI. Avoid heavy gradients and rounded
-  "modern SaaS" styling. An event-poster feel.
+Changed by the owner on 10 October 2026 from the original rectangular poster
+style to a modern dark theme:
+- Background on every page: one Dota 2 artwork (Steam Workshop image chosen by
+  the owner, saved as `public/backgrounds/site-bg.webp`, 1920px, 131 KB;
+  `components/SiteBackground.tsx`), darkened about 75% and tinted
+  dark teal so it never competes with the content.
+- Colours (`app/globals.css` @theme, mirrored in `lib/image-common.ts` for the
+  copied images): ink `#071318`, panel `#0d1d22`, card `#102a2f`, card-hover
+  `#15363c`, text paper `#e1f5ee`, muted `#9fe1cb`, accent teal `#1d9e75`,
+  accent-strong `#0f6e56` (filled buttons), info blue `#378add` (secondary
+  buttons, "upcoming"). Red stays for Live and wrong picks, green for right.
+- Rounded corners (cards/panels `rounded-xl`, buttons `rounded-lg`), thin teal
+  borders, soft drop shadows (`.shadow-offset`), Oswald display headings.
+- Status pills (`components/StatusTag.tsx`): Live (pulsing red dot),
+  Upcoming (blue), Finished (grey).
+- Times shown to visitors (pick deadlines) are in the visitor's own timezone
+  (`components/useLocalTime.ts`, `components/LocalTime.tsx`); the admin page
+  edits and shows UTC.
 
 ## Homepage requirements
-- Fits the viewport and never scrolls vertically, on desktop, laptop and smaller
-  screens. No fixed desktop heights.
-- Order: welcome panel, "Events" heading, horizontal event carousel.
-- Events come from Supabase, never hard-coded. Banner image is `events.image_url`.
-  No image: show a placeholder with the event name.
-- Carousel: about 3 banners on desktop, aspect ratio kept, any number of events,
-  arrows only when there are more than fit. Clicking goes to `/events/[event-id]`.
-- Cards: black border, subtle shadow, slight hover lift/scale, pointer cursor,
-  slight brightness increase on hover.
+- Fits the viewport and never scrolls; the event list scrolls inside itself
+  when there are many events.
+- Top bar: site name and Twitch sign-in / avatar menu (`components/HomeAccount.tsx`).
+- Tagline, then the first event (live, else next upcoming) as a large featured
+  card with "Make your picks" (opens the Pick'em tab, `?tab=pickems`) and
+  "Leaderboard" (`?tab=leaderboard`); the other events listed beside it (below on
+  phones) with status pill and "Picks lock …" or dates.
+- Events come from Supabase, never hard-coded. Banner image is `events.image_url`;
+  no image shows the event name instead.
 
 ## Tier list page (Phase 3; preserve this existing style)
 - `#0b0b0b` background, centred, max width about 760px, compact, about 6 cards per row.
@@ -92,13 +103,13 @@ Do not over-engineer.
   The owner's `.env.local` uses `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
 - `lib/events.ts`: `getEvents()` for the homepage; `getEvent(id)` for the event page
   (event plus its teams via `event_teams`; see `supabase/SCHEMA.md`).
-- `components/`: `SiteBackground`, `Panel`, `EventCard`, `EventCarousel`,
+- `components/`: `SiteBackground`, `Panel`, `HomeAccount`, `StatusTag`,
   `FallbackImage` (image with placeholder when the URL is empty or broken),
   `EventView` (event page shell), `TierList` (drag-and-drop tier list).
 - `lib/tier-layout.ts`: picks the tier list's width and card scale so it fits the
   screen without scrolling (760px wide first, then wider, then smaller cards).
 - `app/page.tsx`, `app/layout.tsx`, `app/globals.css`: homepage, fonts (Geist + Oswald
-  as `font-display`), colour tokens (`ink`, `panel`, `paper`, `steel`), carousel CSS.
+  as `font-display`), colour tokens (see "Design language").
 - `app/events/[id]/page.tsx`: event page. Header (name, dates, status, back link) and
   an in-page switch between Tier List and Pick'em (no navigation).
   - Tier list: S/A/B/C/F plus Unranked; all teams start in Unranked in seed order;
@@ -219,7 +230,7 @@ Do not over-engineer.
     re-syncs when the last sync (`events.last_synced_at`, set by every sync)
     is over 30 minutes old, from a day before the start to a day after the
     end. No cron needed; it only syncs while people view the event.
-  - Later options (not agreed yet): manual result fixes, event visibility/carousel order, homepage text,
+  - Later options (not agreed yet): manual result fixes, event visibility/homepage order, homepage text,
     pick'em stats, users list, change log, health check.
 - The owner has a Liquipedia API key, for Phase 9. It must go in `.env.local`
   without a `NEXT_PUBLIC_` prefix (server only) and never in code or chat.
@@ -238,9 +249,8 @@ Do not over-engineer.
   for every team). Logos in that bucket load straight from Supabase; others go
   through the logo route. New teams work right away with any URL (slower) until
   this is run. A Phase 8 admin upload could automate it.
-- Titles (`components/Panel.tsx`: welcome box, "Events" heading, event name, 404)
-  are dark: grey `bg-panel`, 2px light outline at 60%, light text, blue-grey
-  offset shadow. The owner prefers dark backgrounds with light text over the
+- Titles (`components/Panel.tsx`: event name, 404) use the panel style of the
+  current theme (see "Design language"). The owner prefers dark backgrounds with light text over the
   original light content boxes. The event page has a Home button (house icon +
   "Home", icon only on phones) in the same style instead of "← Events". The
   Tier List / Pick'em / Leaderboard switch matches it; the selected tab has a
@@ -261,9 +271,9 @@ Do not over-engineer.
   from `start_date` / `end_date` (`lib/event-status.ts`), not the free-text
   `events.status` column (the admin form no longer edits it; saving keeps it
   in step with the dates). Homepage order: live (newest first), upcoming
-  (soonest first), finished (most recently ended first), so the carousel
-  opens on what's on now. Each banner has a tag underneath
-  (`components/StatusTag.tsx`; live has a pulsing red dot). The event page
+  (soonest first), finished (most recently ended first), so the homepage
+  opens on what's on now: the first event is featured, the rest listed beside it.
+  Status pills: `components/StatusTag.tsx` (live has a pulsing red dot). The event page
   header shows the same status.
 - Event data in Supabase is demo data for testing, not accurate.
 

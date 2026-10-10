@@ -69,7 +69,7 @@ export function CopyImageButton({ render, fileName, what }: CopyImageButtonProps
         disabled={status === "working"}
         aria-label={`Copy ${what} as image`}
         title={`Copy ${what} as image`}
-        className="flex cursor-pointer items-center gap-2 border border-paper/60 bg-panel px-3 py-[clamp(0.15rem,0.6dvh,0.35rem)] font-display text-[clamp(0.75rem,1.8dvh,0.9rem)] font-bold tracking-widest whitespace-nowrap text-paper uppercase transition-colors hover:border-paper disabled:cursor-wait disabled:opacity-70"
+        className="flex cursor-pointer items-center gap-2 border border-accent/40 bg-panel px-3 py-[clamp(0.15rem,0.6dvh,0.35rem)] font-display text-[clamp(0.75rem,1.8dvh,0.9rem)] font-bold tracking-widest whitespace-nowrap text-paper uppercase transition-colors hover:border-accent disabled:cursor-wait disabled:opacity-70"
       >
         {status === "copied" || status === "downloaded" ? <CheckIcon /> : <CopyIcon />}
         <span>Copy image</span>

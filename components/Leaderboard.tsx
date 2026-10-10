@@ -1,6 +1,7 @@
 "use client";
 
 import { TeamLogo } from "@/components/TeamLogo";
+import { useFormatTime } from "@/components/useLocalTime";
 import type { EventTeam } from "@/lib/events";
 import { POINTS, type Leaderboard as LeaderboardData } from "@/lib/leaderboard";
 
@@ -15,13 +16,6 @@ type LeaderboardProps = {
   now: number | null;
 };
 
-const deadlineFormat = new Intl.DateTimeFormat("en-GB", {
-  day: "numeric",
-  month: "short",
-  hour: "2-digit",
-  minute: "2-digit",
-  timeZone: "UTC",
-});
 
 /**
  * The event's pick'em standings (lib/leaderboard.ts). Picks are private
@@ -36,14 +30,15 @@ export function Leaderboard({
   playoffsDeadline,
   now,
 }: LeaderboardProps) {
+  const formatTime = useFormatTime();
   const teamsById = new Map(teams.map((team) => [team.id, team]));
   const playoffsOpen = now !== null && now < Date.parse(playoffsDeadline);
   const { entries, scoring } = leaderboard;
   const mine = entries.find((entry) => entry.userId === currentUserId);
 
   return (
-    <div className="flex max-h-full min-h-0 w-full max-w-[760px] flex-col self-start border-2 border-paper/60 bg-panel">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-paper/30 px-4 py-2">
+    <div className="flex max-h-full min-h-0 w-full max-w-[760px] flex-col self-start overflow-hidden rounded-xl border border-accent/40 bg-panel shadow-offset">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-accent/20 px-4 py-2">
         <h2 className="font-display text-lg font-bold tracking-widest uppercase">Leaderboard</h2>
         <p className="text-xs text-paper/60">
           {mine
@@ -56,13 +51,13 @@ export function Leaderboard({
         <p className="px-4 py-8 text-center text-sm text-paper/70">
           {now !== null && now >= Date.parse(groupDeadline)
             ? "Nobody saved pick'ems for this event before they locked."
-            : `Picks stay private until they lock. The leaderboard appears when group stage picks lock (${deadlineFormat.format(new Date(groupDeadline))} UTC).`}
+            : `Picks stay private until they lock. The leaderboard appears when group stage picks lock (${formatTime(groupDeadline)}).`}
         </p>
       ) : (
         <div className="min-h-0 overflow-y-auto">
           <table className="w-full table-fixed text-sm">
             <thead className="sticky top-0 bg-panel font-display text-xs tracking-wide text-paper/60 uppercase sm:tracking-widest">
-              <tr className="border-b border-paper/20">
+              <tr className="border-b border-accent/15">
                 <th className="w-9 px-2 py-2 text-right sm:w-12 sm:px-3">#</th>
                 <th className="px-2 py-2 text-left sm:px-3">Player</th>
                 <th className="w-12 px-2 py-2 text-right sm:w-20">
@@ -84,7 +79,7 @@ export function Leaderboard({
                 return (
                   <tr
                     key={entry.userId}
-                    className={`border-b border-paper/10 ${isMe ? "bg-[#2a2a2a] shadow-[inset_3px_0_0_#e8ecf1]" : ""}`}
+                    className={`border-b border-paper/10 ${isMe ? "bg-card-hover shadow-[inset_3px_0_0_#1d9e75]" : ""}`}
                   >
                     <td className="px-2 py-1.5 text-right font-display text-base font-bold text-paper/80 sm:px-3">
                       {entry.rank}
@@ -93,9 +88,9 @@ export function Leaderboard({
                       <span className="flex min-w-0 items-center gap-2">
                         {entry.avatarUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={entry.avatarUrl} alt="" className="h-6 w-6 shrink-0 border border-paper/30 object-cover" />
+                          <img src={entry.avatarUrl} alt="" className="h-6 w-6 shrink-0 border border-accent/20 object-cover" />
                         ) : (
-                          <span className="h-6 w-6 shrink-0 border border-paper/30 bg-[#202020]" />
+                          <span className="h-6 w-6 shrink-0 border border-accent/20 bg-card" />
                         )}
                         <span className="truncate">{entry.name}</span>
                         {isMe && <span className="text-xs text-paper/50">(you)</span>}
@@ -117,12 +112,12 @@ export function Leaderboard({
         </div>
       )}
 
-      <p className="border-t border-paper/20 px-4 py-2 text-xs text-paper/50">
+      <p className="border-t border-accent/15 px-4 py-2 text-xs text-paper/50">
         {POINTS.group} pt per group stage pick marked ✓, {POINTS.playoffMatch} pt per playoff winner
         picked right.{" "}
         {!scoring && entries.length > 0 && "Points appear as results come in. "}
         {playoffsOpen &&
-          `Playoff picks show here when they lock (${deadlineFormat.format(new Date(playoffsDeadline))} UTC).`}
+          `Playoff picks show here when they lock (${formatTime(playoffsDeadline)}).`}
       </p>
     </div>
   );

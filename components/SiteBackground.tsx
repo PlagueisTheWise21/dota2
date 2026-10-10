@@ -1,52 +1,23 @@
 /**
- * Fixed full-screen backdrop: near-black with rows of barely visible Dota
- * terms. Purely decorative, so it is hidden from screen readers and ignores
- * the mouse.
+ * Fixed full-screen backdrop behind every page: one Dota 2 artwork,
+ * darkened and tinted dark teal so the content stays the focus. Purely
+ * decorative, so it is hidden from screen readers and ignores the mouse.
+ *
+ * The image is the owner's choice from the Steam Workshop (the art belongs
+ * to Valve and its artist). To change it, put a new image in
+ * public/backgrounds/ and point BACKGROUND_IMAGE at it.
  */
-const WORDS = [
-  "ROSHAN",
-  "AEGIS",
-  "RAMPAGE",
-  "GG WP",
-  "MID OR FEED",
-  "RADIANT",
-  "DIRE",
-  "BUYBACK",
-  "DIVINE RAPIER",
-  "SMOKE GANK",
-  "HIGH GROUND",
-  "GODLIKE",
-  "FIRST BLOOD",
-  "MEGA CREEPS",
-  "BLACK KING BAR",
-  "ULTRA KILL",
-];
-
-const ROW_COUNT = 14;
-
-/** Each row starts at a different word so the rows do not line up. */
-function rowText(row: number): string {
-  const offset = (row * 5) % WORDS.length;
-  const rotated = [...WORDS.slice(offset), ...WORDS.slice(0, offset)];
-  return rotated.join("  /  ");
-}
+// A 1920px WebP copy kept in the site (public/backgrounds/), so it loads fast
+// and can't disappear. Original: Steam Workshop image
+// https://images.steamusercontent.com/ugc/703983937065332889/7F8C31C3B27D541E461DB34FDF60940077A66346/
+const BACKGROUND_IMAGE = "/backgrounds/site-bg.webp";
 
 export function SiteBackground() {
   return (
-    <div
-      aria-hidden="true"
-      className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-ink select-none"
-    >
-      <div className="absolute -inset-[20%] flex -rotate-6 flex-col justify-between">
-        {Array.from({ length: ROW_COUNT }, (_, row) => (
-          <p
-            key={row}
-            className="font-display text-[clamp(2rem,6vw,5rem)] leading-none font-bold tracking-widest whitespace-nowrap text-white/[0.035] uppercase"
-          >
-            {rowText(row)}
-          </p>
-        ))}
-      </div>
+    <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-[#071318] select-none">
+      <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${BACKGROUND_IMAGE})` }} />
+      <div className="absolute inset-0 bg-[#071318]/75" />
+      <div className="absolute inset-0 bg-gradient-to-b from-[#0F6E56]/15 via-transparent to-[#071318]/90" />
     </div>
   );
 }

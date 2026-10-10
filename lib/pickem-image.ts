@@ -280,7 +280,7 @@ function drawGroupBoard(
       const lastInGroup = offset === group.size - 1;
       if (!(lastInGroup && lastGroup)) {
         const line = lastInGroup ? 2 : 1;
-        context.fillStyle = lastInGroup ? COLORS.black : "rgba(0, 0, 0, 0.6)";
+        context.fillStyle = lastInGroup ? COLORS.black : "rgba(7, 19, 24, 0.6)";
         context.fillRect(slotX, y + GROUP_ROW - line, slotWidth, line);
         if (lastInGroup) context.fillRect(innerX, y + GROUP_ROW - line, GROUP_LABEL, line);
       }
@@ -443,7 +443,7 @@ function drawMatch(
       context.fillRect(x + 1, y + TEAM_ROW, COLUMN_WIDTH - 2, 1);
     }
     if (picked) {
-      context.fillStyle = "#2f2f2f";
+      context.fillStyle = COLORS.labelGrey;
       context.fillRect(x + 1, rowY + (index === 0 ? 1 : 0), COLUMN_WIDTH - 2, TEAM_ROW - 1);
       context.fillStyle = COLORS.paper;
       context.fillRect(x + 1, rowY + (index === 0 ? 1 : 0), 3, TEAM_ROW - 1);

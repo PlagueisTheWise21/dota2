@@ -6,6 +6,7 @@ import { AccountButton } from "@/components/AccountButton";
 import { CopyImageButton } from "@/components/CopyImageButton";
 import { Leaderboard } from "@/components/Leaderboard";
 import { Panel } from "@/components/Panel";
+import { StatusTag } from "@/components/StatusTag";
 import {
   Pickems,
   initialPickemState,
@@ -53,7 +54,7 @@ const SECTIONS = [
   { id: "leaderboard", label: "Leaderboard", shortLabel: "Ranks" },
 ] as const;
 
-type SectionId = (typeof SECTIONS)[number]["id"];
+export type SectionId = (typeof SECTIONS)[number]["id"];
 
 type EventViewProps = {
   event: EventDetails;
@@ -61,6 +62,8 @@ type EventViewProps = {
   pickemData: PickemData;
   /** Everyone's pick'em scores (lib/leaderboard.ts). */
   leaderboard: LeaderboardData;
+  /** Tab to open on (from ?tab= in the URL, e.g. the homepage buttons). */
+  initialSection?: SectionId;
 };
 
 /**
@@ -72,8 +75,8 @@ type EventViewProps = {
  * pick'ems load from and save to Supabase (lib/saved-picks.ts); each pick'em
  * stage locks at its deadline (also enforced by the database).
  */
-export function EventView({ event, pickemData, leaderboard }: EventViewProps) {
-  const [section, setSection] = useState<SectionId>("tier-list");
+export function EventView({ event, pickemData, leaderboard, initialSection = "tier-list" }: EventViewProps) {
+  const [section, setSection] = useState<SectionId>(initialSection);
   const [placements, setPlacements] = useState<Placements>(() =>
     initialPlacements(event.teams),
   );
@@ -268,8 +271,9 @@ export function EventView({ event, pickemData, leaderboard }: EventViewProps) {
           </h1>
           <p className="text-[clamp(0.7rem,min(1.4vw,2dvh),0.85rem)] font-medium tracking-wide">
             {formatDateRange(event.start_date, event.end_date)}
-            <span className="mx-2 opacity-40">/</span>
-            <span className="uppercase">{event.status}</span>
+            <span className="ml-2 align-middle">
+              <StatusTag status={event.status} />
+            </span>
           </p>
         </Panel>
 
@@ -278,7 +282,7 @@ export function EventView({ event, pickemData, leaderboard }: EventViewProps) {
             href="/"
             aria-label="Home"
             title="Home"
-            className="shadow-offset flex items-center gap-2 border-2 border-paper/60 bg-panel px-[clamp(0.6rem,1.5vw,0.9rem)] py-[calc(clamp(0.2rem,0.9dvh,0.45rem)+1px)] font-display text-[clamp(0.85rem,min(2vw,2.8dvh),1.15rem)] font-bold tracking-widest whitespace-nowrap text-paper uppercase transition-colors hover:border-paper"
+            className="shadow-offset rounded-xl flex items-center gap-2 border border-accent/40 bg-panel px-[clamp(0.6rem,1.5vw,0.9rem)] py-[calc(clamp(0.2rem,0.9dvh,0.45rem)+1px)] font-display text-[clamp(0.85rem,min(2vw,2.8dvh),1.15rem)] font-bold tracking-widest whitespace-nowrap text-paper uppercase transition-colors hover:border-accent"
           >
             <HomeIcon />
             <span className="hidden sm:inline">Home</span>
@@ -299,7 +303,7 @@ export function EventView({ event, pickemData, leaderboard }: EventViewProps) {
           <div
             role="tablist"
             aria-label="Event sections"
-            className="shadow-offset flex border-2 border-paper/60 bg-panel"
+            className="shadow-offset flex overflow-hidden rounded-xl border border-accent/40 bg-panel"
           >
             {SECTIONS.map((item) => {
               const selected = item.id === section;
@@ -312,9 +316,9 @@ export function EventView({ event, pickemData, leaderboard }: EventViewProps) {
                   aria-selected={selected}
                   aria-controls={`panel-${item.id}`}
                   onClick={() => setSection(item.id)}
-                  className={`cursor-pointer px-[clamp(0.75rem,1.6vw,1.1rem)] py-[calc(clamp(0.2rem,0.9dvh,0.45rem)+1px)] font-display text-[clamp(0.85rem,min(2vw,2.8dvh),1.15rem)] font-bold tracking-widest whitespace-nowrap uppercase transition-colors not-last:border-r not-last:border-paper/30 ${
+                  className={`cursor-pointer px-[clamp(0.75rem,1.6vw,1.1rem)] py-[calc(clamp(0.2rem,0.9dvh,0.45rem)+1px)] font-display text-[clamp(0.85rem,min(2vw,2.8dvh),1.15rem)] font-bold tracking-widest whitespace-nowrap uppercase transition-colors not-last:border-r not-last:border-accent/20 ${
                     selected
-                      ? "bg-[#2a2a2a] text-paper shadow-[inset_0_-3px_0_0_#e8ecf1]"
+                      ? "bg-card-hover text-paper shadow-[inset_0_-3px_0_0_#1d9e75]"
                       : "text-paper/50 hover:text-paper"
                   }`}
                 >

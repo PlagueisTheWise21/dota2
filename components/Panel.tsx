@@ -13,7 +13,7 @@ type PanelProps = {
 export function Panel({ children, className = "" }: PanelProps) {
   return (
     <div
-      className={`shadow-offset border-2 border-paper/60 bg-panel text-paper ${className}`}
+      className={`shadow-offset rounded-xl border border-accent/40 bg-panel text-paper ${className}`}
     >
       {children}
     </div>

@@ -111,7 +111,7 @@ export function EventTeamsEditor({
         </p>
       )}
 
-      <ol className="flex flex-col border border-paper/30">
+      <ol className="flex flex-col border border-accent/20">
         {ids.map((id, index) => {
           const team = teamsById.get(id);
           return (
@@ -125,7 +125,7 @@ export function EventTeamsEditor({
                 setDragIndex(null);
               }}
               onDragEnd={() => setDragIndex(null)}
-              className={`flex cursor-grab items-center gap-3 px-3 py-1.5 not-last:border-b not-last:border-paper/15 ${
+              className={`flex cursor-grab items-center gap-3 px-3 py-1.5 not-last:border-b not-last:border-white/10 ${
                 dragIndex === index ? "opacity-40" : ""
               }`}
             >
@@ -163,13 +163,13 @@ export function EventTeamsEditor({
           aria-label="Add a team"
         />
         {query && (
-          <ul className="absolute top-full right-0 left-0 z-20 border border-paper/40 bg-[#202020] shadow-lg">
+          <ul className="absolute top-full right-0 left-0 z-20 border border-accent/30 bg-card shadow-lg">
             {matches.map((team) => (
               <li key={team.id}>
                 <button
                   type="button"
                   onClick={() => add(team)}
-                  className="w-full cursor-pointer px-3 py-1.5 text-left text-sm hover:bg-[#2a2a2a]"
+                  className="w-full cursor-pointer px-3 py-1.5 text-left text-sm hover:bg-card-hover"
                 >
                   {team.name}
                   {team.short_name && <span className="ml-2 text-paper/50">{team.short_name}</span>}
@@ -182,7 +182,7 @@ export function EventTeamsEditor({
                   type="button"
                   disabled={busy}
                   onClick={() => void createAndAdd()}
-                  className="w-full cursor-pointer px-3 py-1.5 text-left text-sm text-[#93c5fd] hover:bg-[#2a2a2a]"
+                  className="w-full cursor-pointer px-3 py-1.5 text-left text-sm text-[#93c5fd] hover:bg-card-hover"
                 >
                   + Create new team &quot;{search.trim()}&quot;
                 </button>
@@ -226,7 +226,7 @@ function IconButton({
       title={label}
       onClick={onClick}
       disabled={disabled}
-      className="h-7 w-7 cursor-pointer border border-paper/40 text-sm hover:border-paper disabled:cursor-default disabled:opacity-25"
+      className="h-7 w-7 cursor-pointer border border-accent/30 text-sm hover:border-accent disabled:cursor-default disabled:opacity-25"
     >
       {children}
     </button>

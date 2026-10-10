@@ -85,7 +85,7 @@ export function AdminApp() {
         <div className="flex items-center gap-3">
           <Link
             href="/"
-            className="shadow-offset border-2 border-paper/60 bg-panel px-3 py-1.5 font-display font-bold tracking-widest uppercase hover:border-paper"
+            className="shadow-offset rounded-xl border border-accent/40 bg-panel px-3 py-1.5 font-display font-bold tracking-widest uppercase hover:border-accent"
           >
             Home
           </Link>
@@ -100,8 +100,8 @@ export function AdminApp() {
               type="button"
               onClick={() => setTab(name)}
               aria-pressed={tab === name}
-              className={`cursor-pointer border-2 border-paper/60 px-5 py-1.5 font-display font-bold tracking-widest uppercase not-first:border-l-0 ${
-                tab === name ? "bg-[#2a2a2a] shadow-[inset_0_-3px_0_#e8ecf1]" : "bg-panel text-paper/70 hover:text-paper"
+              className={`cursor-pointer border border-accent/40 px-5 py-1.5 font-display font-bold tracking-widest uppercase not-first:border-l-0 ${
+                tab === name ? "bg-card-hover shadow-[inset_0_-3px_0_#1d9e75]" : "bg-panel text-paper/70 hover:text-paper"
               }`}
             >
               {name}

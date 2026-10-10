@@ -62,17 +62,17 @@ export function EventsAdmin({ data, reload }: { data: AdminData; reload: () => P
             Import
           </Button>
         </div>
-        <ul className="flex flex-col border-2 border-paper/60 bg-panel">
+        <ul className="flex flex-col border border-accent/40 bg-panel">
           {data.events.map((event) => {
             const teamCount = data.eventTeams.filter((link) => link.event_id === event.id).length;
             const active = selection?.kind === "event" && selection.id === event.id;
             return (
-              <li key={event.id} className="not-last:border-b not-last:border-paper/20">
+              <li key={event.id} className="not-last:border-b not-last:border-accent/15">
                 <button
                   type="button"
                   onClick={() => setSelection({ kind: "event", id: event.id })}
                   className={`w-full cursor-pointer px-3 py-2 text-left ${
-                    active ? "bg-[#2a2a2a] shadow-[inset_3px_0_0_#e8ecf1]" : "hover:bg-[#1f1f1f]"
+                    active ? "bg-card-hover shadow-[inset_3px_0_0_#1d9e75]" : "hover:bg-card-hover/60"
                   }`}
                 >
                   <span className="block truncate font-semibold">{event.name}</span>
@@ -278,7 +278,7 @@ function EventDetails({
 
         <div className="flex flex-col gap-2">
           <Field label="Banner">
-            <div className="aspect-video w-full border border-paper/40 bg-[#202020]">
+            <div className="aspect-video w-full border border-accent/30 bg-card">
               <FallbackImage
                 src={imageUrl || null}
                 alt=""
@@ -287,7 +287,7 @@ function EventDetails({
               />
             </div>
           </Field>
-          <label className="cursor-pointer border-2 border-paper/60 bg-[#202020] px-3 py-1.5 text-center font-display text-sm font-bold tracking-widest uppercase hover:border-paper">
+          <label className="cursor-pointer border border-accent/40 bg-card px-3 py-1.5 text-center font-display text-sm font-bold tracking-widest uppercase hover:border-accent">
             Upload banner
             <input
               type="file"

@@ -4,8 +4,8 @@ import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAt
 
 export function Section({ title, actions, children }: { title: string; actions?: ReactNode; children: ReactNode }) {
   return (
-    <section className="border-2 border-paper/60 bg-panel">
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-paper/30 px-4 py-2">
+    <section className="overflow-hidden rounded-xl border border-accent/40 bg-panel">
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-accent/20 px-4 py-2">
         <h2 className="font-display text-lg font-bold tracking-widest uppercase">{title}</h2>
         {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
       </header>
@@ -25,7 +25,7 @@ export function Field({ label, hint, children }: { label: string; hint?: ReactNo
 }
 
 const inputClass =
-  "w-full border border-paper/40 bg-[#202020] px-2 py-1.5 text-sm text-paper placeholder:text-paper/30 focus:border-paper focus:outline-none disabled:opacity-50";
+  "w-full rounded-md border border-accent/30 bg-card px-2 py-1.5 text-sm text-paper placeholder:text-paper/30 focus:border-paper focus:outline-none disabled:opacity-50";
 
 export function TextInput(props: InputHTMLAttributes<HTMLInputElement>) {
   return <input {...props} className={`${inputClass} ${props.className ?? ""}`} />;
@@ -41,15 +41,15 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 export function Button({ variant = "normal", className = "", type = "button", ...props }: ButtonProps) {
   const colours = {
-    normal: "border-paper/60 bg-[#202020] hover:border-paper",
-    primary: "border-paper bg-paper text-ink hover:bg-white",
+    normal: "border-accent/40 bg-card hover:border-accent",
+    primary: "border-accent-strong bg-accent-strong text-white hover:bg-accent hover:border-accent",
     danger: "border-[#ef4444]/70 bg-[#2a1414] text-[#fca5a5] hover:border-[#ef4444]",
   }[variant];
   return (
     <button
       type={type}
       {...props}
-      className={`cursor-pointer border-2 px-3 py-1.5 font-display text-sm font-bold tracking-widest whitespace-nowrap uppercase transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+      className={`cursor-pointer rounded-lg border px-3 py-1.5 font-display text-sm font-bold tracking-widest whitespace-nowrap uppercase transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
         variant === "primary" ? "" : "text-paper"
       } ${colours} ${className}`}
     />

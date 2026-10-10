@@ -4,6 +4,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { Panel } from "@/components/Panel";
 import { SlotBoard, type Slots } from "@/components/SlotBoard";
 import { TeamLogo } from "@/components/TeamLogo";
+import { useFormatTime } from "@/components/useLocalTime";
 import type { EventDetails, EventTeam } from "@/lib/events";
 import {
   grandFinal,
@@ -85,7 +86,7 @@ export function Pickems({ event, data, state, onChange, locked, deadlines }: Pic
 
   return (
     <div className="flex h-full w-full flex-col items-center gap-[clamp(0.4rem,1.5dvh,0.9rem)]">
-      <div role="tablist" aria-label="Pick'em sections" className="flex border border-paper/40 bg-panel">
+      <div role="tablist" aria-label="Pick'em sections" className="flex overflow-hidden rounded-lg border border-accent/30 bg-panel">
         {sections.map((item) => {
           const selected = item.id === state.section;
           return (
@@ -96,9 +97,9 @@ export function Pickems({ event, data, state, onChange, locked, deadlines }: Pic
               aria-selected={selected}
               disabled={!item.enabled}
               onClick={() => onChange({ ...state, section: item.id })}
-              className={`cursor-pointer px-4 py-1 font-display text-[clamp(0.75rem,1.8dvh,0.9rem)] font-bold tracking-widest uppercase transition-colors not-last:border-r not-last:border-paper/30 disabled:cursor-not-allowed disabled:opacity-30 ${
+              className={`cursor-pointer px-4 py-1 font-display text-[clamp(0.75rem,1.8dvh,0.9rem)] font-bold tracking-widest uppercase transition-colors not-last:border-r not-last:border-accent/20 disabled:cursor-not-allowed disabled:opacity-30 ${
                 selected
-                  ? "bg-[#2a2a2a] text-paper shadow-[inset_0_-2px_0_0_#e8ecf1]"
+                  ? "bg-card-hover text-paper shadow-[inset_0_-2px_0_0_#1d9e75]"
                   : "text-paper/50 hover:text-paper"
               }`}
             >
@@ -191,6 +192,7 @@ function GroupStage({
   locked: boolean;
   deadline: string;
 }) {
+  const formatDeadline = useFormatTime();
   const groups = useMemo(() => swissGroups(teams.length), [teams.length]);
   const records = useMemo(
     () => new Map((data.groupRecords ?? []).map((record) => [record.teamId, record])),
@@ -265,6 +267,7 @@ function GroupsStage({
   deadline: string;
 }) {
   const [selected, setSelected] = useState(0);
+  const formatDeadline = useFormatTime();
 
   if (data.groups.length === 0) {
     return (
@@ -297,7 +300,7 @@ function GroupsStage({
 
   return (
     <div className="flex h-full w-full flex-col items-center gap-[clamp(0.3rem,1dvh,0.6rem)]">
-      <div role="tablist" aria-label="Groups" className="flex border border-paper/30 bg-panel">
+      <div role="tablist" aria-label="Groups" className="flex overflow-hidden rounded-lg border border-accent/20 bg-panel">
         {data.groups.map((item, index) => {
           const itemSegment = segments[index];
           const filled = slots
@@ -310,8 +313,8 @@ function GroupsStage({
               role="tab"
               aria-selected={index === current}
               onClick={() => setSelected(index)}
-              className={`cursor-pointer px-3 py-0.5 font-display text-[clamp(0.7rem,1.6dvh,0.8rem)] font-bold tracking-widest uppercase transition-colors not-last:border-r not-last:border-paper/30 ${
-                index === current ? "bg-[#2a2a2a] text-paper" : "text-paper/50 hover:text-paper"
+              className={`cursor-pointer px-3 py-0.5 font-display text-[clamp(0.7rem,1.6dvh,0.8rem)] font-bold tracking-widest uppercase transition-colors not-last:border-r not-last:border-accent/20 ${
+                index === current ? "bg-card-hover text-paper" : "text-paper/50 hover:text-paper"
               }`}
             >
               {groupName(item.index)}
@@ -374,6 +377,7 @@ function Bracket({
   locked: boolean;
   deadline: string;
 }) {
+  const formatDeadline = useFormatTime();
   const { resolved } = useMemo(() => resolveBracket(matches, picks), [matches, picks]);
   const names = useMemo(() => roundNames(matches), [matches]);
   const rounds = useMemo(() => [...new Set(matches.map((m) => m.round))].sort((a, b) => a - b), [matches]);
@@ -454,7 +458,7 @@ function Bracket({
         {sectionRow("lower")}
       </div>
 
-      <div className="shadow-offset mt-1 flex items-center gap-3 border-2 border-paper/60 bg-panel px-4 py-2">
+      <div className="shadow-offset rounded-xl mt-1 flex items-center gap-3 border border-accent/40 bg-panel px-4 py-2">
         <span className="font-display text-xs font-bold tracking-widest text-paper/60 uppercase">
           Your champion
         </span>
@@ -516,7 +520,7 @@ function MatchCard({
       : undefined;
 
   return (
-    <div className="border border-paper/60 bg-[#202020] shadow-[2px_2px_0_0_#000]">
+    <div className="border border-accent/40 bg-card rounded-md shadow-md shadow-black/40">
       {rows.map(({ teamId, guess }, index) => {
         const team = teamId ? teamsById.get(teamId) : undefined;
         const picked = Boolean(teamId) && pick === teamId;
@@ -535,7 +539,7 @@ function MatchCard({
             ? "font-bold text-paper"
             : pick
               ? "text-paper/40 hover:text-paper"
-              : "text-paper/85 hover:bg-[#2a2a2a]";
+              : "text-paper/85 hover:bg-card-hover";
         return (
           <button
             key={index}
@@ -552,8 +556,8 @@ function MatchCard({
                 : "Decided by an earlier pick"
             }
             className={`flex h-[clamp(1.6rem,3.6dvh,2rem)] w-full cursor-pointer items-center gap-2 px-2 text-left text-[clamp(0.7rem,1.6dvh,0.8rem)] transition-colors disabled:cursor-default ${
-              index === 1 ? "border-t border-paper/30" : ""
-            } ${picked ? "bg-[#2f2f2f] shadow-[inset_3px_0_0_0_#e8ecf1]" : ""} ${tone}`}
+              index === 1 ? "border-t border-accent/20" : ""
+            } ${picked ? "bg-card-hover shadow-[inset_3px_0_0_0_#1d9e75]" : ""} ${tone}`}
           >
             <span className={`flex h-[70%] aspect-square shrink-0 items-center justify-center ${guess || isLoser ? "opacity-50" : ""}`}>
               {team && <TeamLogo team={team} fallbackStyle={{ fontSize: "0.5rem" }} />}
@@ -576,24 +580,11 @@ function MatchCard({
         );
       })}
       {missedPick && (
-        <p className="flex items-center gap-1 border-t border-paper/30 px-2 py-0.5 text-[0.65rem] text-paper/50">
+        <p className="flex items-center gap-1 border-t border-accent/20 px-2 py-0.5 text-[0.65rem] text-paper/50">
           <span className="truncate">Your pick: {missedPick.name}</span>
           <span className="font-bold text-[#ef4444]">✗</span>
         </p>
       )}
     </div>
   );
-}
-
-const deadlineFormat = new Intl.DateTimeFormat("en-GB", {
-  day: "numeric",
-  month: "short",
-  hour: "2-digit",
-  minute: "2-digit",
-  timeZone: "UTC",
-});
-
-/** "22 Oct, 08:00 UTC" */
-function formatDeadline(iso: string): string {
-  return `${deadlineFormat.format(new Date(iso))} UTC`;
 }

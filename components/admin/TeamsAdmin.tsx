@@ -64,14 +64,14 @@ export function TeamsAdmin({ data, reload }: { data: AdminData; reload: () => Pr
             </option>
           ))}
         </Select>
-        <ul className="flex max-h-[70dvh] flex-col overflow-y-auto border-2 border-paper/60 bg-panel">
+        <ul className="flex max-h-[70dvh] flex-col overflow-y-auto border border-accent/40 bg-panel">
           {shown.map((team) => (
-            <li key={team.id} className="not-last:border-b not-last:border-paper/20">
+            <li key={team.id} className="not-last:border-b not-last:border-accent/15">
               <button
                 type="button"
                 onClick={() => setSelectedId(team.id)}
                 className={`flex w-full cursor-pointer items-center gap-3 px-3 py-1.5 text-left ${
-                  team.id === selectedId ? "bg-[#2a2a2a] shadow-[inset_3px_0_0_#e8ecf1]" : "hover:bg-[#1f1f1f]"
+                  team.id === selectedId ? "bg-card-hover shadow-[inset_3px_0_0_#1d9e75]" : "hover:bg-card-hover/60"
                 }`}
               >
                 <span className="flex h-7 w-9 shrink-0 items-center justify-center">
@@ -219,7 +219,7 @@ function TeamEditor({
           <span className="font-display text-xs font-bold tracking-widest text-paper/80 uppercase">Logo</span>
           <div className="grid grid-cols-2 gap-1">
             {/* On the site's dark cards and on a light background, to spot see-through edges. */}
-            {["bg-[#202020]", "bg-paper"].map((background) => (
+            {["bg-card", "bg-paper"].map((background) => (
               <div key={background} className={`flex aspect-square items-center justify-center p-2 ${background}`}>
                 <FallbackImage
                   src={logoUrl || null}
@@ -231,7 +231,7 @@ function TeamEditor({
               </div>
             ))}
           </div>
-          <label className="cursor-pointer border-2 border-paper/60 bg-[#202020] px-3 py-1.5 text-center font-display text-sm font-bold tracking-widest uppercase hover:border-paper">
+          <label className="cursor-pointer border border-accent/40 bg-card px-3 py-1.5 text-center font-display text-sm font-bold tracking-widest uppercase hover:border-accent">
             {busy === "upload" ? "Uploading..." : "Upload logo"}
             <input
               type="file"
@@ -274,7 +274,7 @@ function TeamEditor({
       </div>
 
       {team && (
-        <div className="mt-6 border-t border-paper/20 pt-4">
+        <div className="mt-6 border-t border-accent/15 pt-4">
           <h3 className="font-display text-sm font-bold tracking-widest uppercase">Merge a duplicate</h3>
           <p className="mt-1 mb-2 text-xs text-paper/50">
             If the same team exists twice (e.g. the sync made a second copy), pick the copy here. Everything

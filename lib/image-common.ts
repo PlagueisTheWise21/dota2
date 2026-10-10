@@ -6,16 +6,17 @@ import { getTrimmedLogo } from "@/lib/logo-trim";
  * Browser-only.
  */
 
+/** Same palette as the site (app/globals.css @theme). */
 export const COLORS = {
-  ink: "#0b0b0b",
-  panel: "#161616",
-  paper: "#e8ecf1",
-  shadow: "#4a607a",
-  card: "#202020",
-  cardOutline: "rgba(232, 236, 241, 0.6)",
-  cardDivider: "rgba(232, 236, 241, 0.3)",
-  labelGrey: "#2a2a2a",
-  black: "#000000",
+  ink: "#071318",
+  panel: "#0d1d22",
+  paper: "#e1f5ee",
+  shadow: "#04342c",
+  card: "#102a2f",
+  cardOutline: "rgba(29, 158, 117, 0.55)",
+  cardDivider: "rgba(29, 158, 117, 0.3)",
+  labelGrey: "#15363c",
+  black: "#071318",
 };
 
 /** Space around everything in the image, in px. */

@@ -28,20 +28,20 @@ export function TeamChip({ team, dimmed, lifted, result, onPointerDown }: TeamCh
       : result === "wrong"
         ? "border-[#ef4444]"
         : lifted
-          ? "border-paper"
-          : "border-paper/60 hover:border-paper";
+          ? "border-accent"
+          : "border-accent/40 hover:border-accent";
 
   return (
     <div
       onPointerDown={onPointerDown}
       title={result ? `${team.name} (${result === "correct" ? "correct" : "wrong"})` : team.name}
-      className={`flex h-full items-stretch overflow-hidden border bg-[#202020] text-paper ${outline} ${
+      className={`flex h-full items-stretch overflow-hidden rounded-md border bg-card text-paper ${outline} ${
         lifted
           ? "shadow-[5px_5px_0_0_rgba(0,0,0,0.9)]"
-          : `shadow-[2px_2px_0_0_#000] transition-colors ${onPointerDown ? "cursor-grab touch-none" : ""}`
+          : `rounded-md shadow-md shadow-black/40 transition-colors ${onPointerDown ? "cursor-grab touch-none" : ""}`
       } ${dimmed ? "opacity-30" : ""}`}
     >
-      <div className="flex aspect-square h-full shrink-0 items-center justify-center border-r border-paper/30 p-[2px]">
+      <div className="flex aspect-square h-full shrink-0 items-center justify-center border-r border-accent/20 p-[2px]">
         <TeamLogo team={team} fallbackStyle={{ fontSize: "0.6rem" }} />
       </div>
       <span className="flex min-w-0 flex-1 items-center px-2 text-[clamp(0.7rem,1.7dvh,0.9rem)] font-semibold">
