@@ -20,6 +20,7 @@ import {
 import { FallbackImage } from "@/components/FallbackImage";
 import { useNow } from "@/components/useNow";
 import { bannerFromFile } from "@/lib/admin-images";
+import { eventStatus } from "@/lib/event-status";
 import {
   deleteEvent,
   loadEventSyncInfo,
@@ -36,7 +37,6 @@ import {
 
 type Selection = { kind: "event"; id: string } | { kind: "new" } | { kind: "import" } | null;
 
-const STATUSES = ["upcoming", "live", "finished"];
 const GROUP_FORMATS: [string, string][] = [
   ["", "None / not set"],
   ["swiss", "Swiss"],
@@ -77,7 +77,7 @@ export function EventsAdmin({ data, reload }: { data: AdminData; reload: () => P
                 >
                   <span className="block truncate font-semibold">{event.name}</span>
                   <span className="text-xs text-paper/50">
-                    {event.start_date.slice(0, 10)} · {event.status} · {teamCount} teams
+                    {event.start_date.slice(0, 10)} · {eventStatus(event.start_date, event.end_date)} · {teamCount} teams
                   </span>
                 </button>
               </li>
@@ -152,7 +152,6 @@ function EventDetails({
   const [name, setName] = useState(event?.name ?? "");
   const [startDate, setStartDate] = useState(event?.start_date.slice(0, 10) ?? "");
   const [endDate, setEndDate] = useState(event?.end_date.slice(0, 10) ?? "");
-  const [status, setStatus] = useState(event?.status ?? "upcoming");
   const [liquipediaPage, setLiquipediaPage] = useState(event?.liquipedia_page ?? "");
   const [groupFormat, setGroupFormat] = useState(event?.group_format ?? "");
   const [imageUrl, setImageUrl] = useState(event?.image_url ?? "");
@@ -174,7 +173,8 @@ function EventDetails({
         // A new event's group picks lock when it starts; change it under Deadlines.
         prediction_deadline: event?.prediction_deadline ?? `${startDate}T00:00:00Z`,
         playoff_deadline: event?.playoff_deadline ?? null,
-        status,
+        // Kept in step with the dates; the site works the status out itself.
+        status: eventStatus(`${startDate}T00:00:00Z`, `${endDate}T23:59:59Z`),
         image_url: imageUrl.trim() || null,
         liquipedia_page: liquipediaPage.trim().replace(/ /g, "_") || null,
         group_format: groupFormat || null,
@@ -255,15 +255,6 @@ function EventDetails({
           </Field>
           <Field label="End date">
             <TextInput type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-          </Field>
-          <Field label="Status">
-            <Select value={status} onChange={(e) => setStatus(e.target.value)}>
-              {[...new Set([...STATUSES, status])].map((value) => (
-                <option key={value} value={value}>
-                  {value}
-                </option>
-              ))}
-            </Select>
           </Field>
           <Field label="Group stage format" hint="The sync sets this from Liquipedia.">
             <Select value={groupFormat} onChange={(e) => setGroupFormat(e.target.value)}>

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { EventCard } from "@/components/EventCard";
+import { StatusTag } from "@/components/StatusTag";
 import type { EventSummary } from "@/lib/events";
 
 type EventCarouselProps = {
@@ -10,7 +11,9 @@ type EventCarouselProps = {
 
 /**
  * Horizontal row of event banners (about 3 on desktop, 2 on tablets, 1 on
- * phones; sizes live in globals.css under ".event-track").
+ * phones; sizes live in globals.css under ".event-track"), each with its
+ * live / upcoming / finished tag. lib/events.ts puts live and upcoming first,
+ * so the row starts at the left with what's on now.
  * Arrow buttons only appear when the banners do not all fit.
  */
 export function EventCarousel({ events }: EventCarouselProps) {
@@ -65,8 +68,9 @@ export function EventCarousel({ events }: EventCarouselProps) {
 
       <div ref={trackRef} className="event-track min-w-0 flex-1">
         {events.map((event) => (
-          <div key={event.id} data-slide className="event-slide">
+          <div key={event.id} data-slide className="event-slide flex flex-col items-center gap-[clamp(0.3rem,1dvh,0.6rem)]">
             <EventCard event={event} />
+            <StatusTag status={event.status} />
           </div>
         ))}
       </div>

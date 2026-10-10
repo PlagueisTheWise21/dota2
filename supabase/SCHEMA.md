@@ -142,8 +142,8 @@ Created by `supabase/migrations/20261010_admin.sql`.
   saved_tier_lists/saved_pickems to p_keep, then deletes p_remove.
 
 ## What the code reads today
-- Homepage (`lib/events.ts`, `getEvents`): `events.id`, `events.name`, `events.image_url`, ordered by `events.start_date`.
-- Event page (`lib/events.ts`, `getEvent`): `events.id, name, start_date, end_date, prediction_deadline, playoff_deadline, status, liquipedia_page, group_format`,
+- Homepage (`lib/events.ts`, `getEvents`): `events.id, name, image_url, start_date, end_date`; status and order worked out from the dates (`lib/event-status.ts`).
+- Event page (`lib/events.ts`, `getEvent`): `events.id, name, start_date, end_date, prediction_deadline, playoff_deadline, liquipedia_page, group_format` (status from the dates),
   plus `event_teams.seed` and `teams.id, name, short_name, logo_url` through `event_teams`.
   Teams are ordered by `seed` (unseeded last, then by name); the seed is not displayed.
 - Logo route (`app/api/logo/route.ts`): `teams.logo_url`, to check a requested URL

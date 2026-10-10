@@ -257,6 +257,14 @@ Do not over-engineer.
   the project to an NTFS drive (e.g. C:).
 - `app/not-found.tsx`: styled 404, also used for unknown or malformed event ids.
 - Welcome wording is placeholder text in two constants at the top of `app/page.tsx`.
+- Event status (10 October 2026): upcoming / live / finished is worked out
+  from `start_date` / `end_date` (`lib/event-status.ts`), not the free-text
+  `events.status` column (the admin form no longer edits it; saving keeps it
+  in step with the dates). Homepage order: live (newest first), upcoming
+  (soonest first), finished (most recently ended first), so the carousel
+  opens on what's on now. Each banner has a tag underneath
+  (`components/StatusTag.tsx`; live has a pulsing red dot). The event page
+  header shows the same status.
 - Event data in Supabase is demo data for testing, not accurate.
 
 ### Confirmed
