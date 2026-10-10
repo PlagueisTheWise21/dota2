@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { AccountButton } from "@/components/AccountButton";
 import { CopyImageButton } from "@/components/CopyImageButton";
+import { DeadlineReminder, REMIND_WITHIN_MS } from "@/components/DeadlineReminder";
 import { Leaderboard } from "@/components/Leaderboard";
 import { Panel } from "@/components/Panel";
 import { StatusTag } from "@/components/StatusTag";
@@ -108,6 +109,17 @@ export function EventView({ event, pickemData, leaderboard }: EventViewProps) {
     group: now !== null && now >= Date.parse(groupDeadline),
     playoffs: now !== null && now >= Date.parse(playoffsDeadline),
   };
+
+  // Remind people when the next stage they can pick locks within 48 hours.
+  const canPickGroup = groupSegments(pickemData).length > 0;
+  const canPickPlayoffs = pickemData.bracket.some((match) => match.team1 || match.team2);
+  const soon = (deadline: string) => now !== null && Date.parse(deadline) > now && Date.parse(deadline) - now <= REMIND_WITHIN_MS;
+  const reminder =
+    canPickGroup && !locked.group && soon(groupDeadline)
+      ? { stage: "Group stage" as const, deadline: groupDeadline }
+      : canPickPlayoffs && !locked.playoffs && soon(playoffsDeadline)
+        ? { stage: "Playoff" as const, deadline: playoffsDeadline }
+        : null;
 
   const tierSaver = useDebouncedSave<Placements>((value) =>
     saveTierList(userId!, event.id, value),
@@ -355,6 +367,16 @@ export function EventView({ event, pickemData, leaderboard }: EventViewProps) {
         aria-labelledby={`tab-${section}`}
         className="flex min-h-0 w-full flex-1 flex-col items-center gap-[clamp(0.4rem,1.5dvh,0.9rem)]"
       >
+        {reminder && now !== null && section !== "leaderboard" && (
+          <DeadlineReminder
+            stage={reminder.stage}
+            deadline={reminder.deadline}
+            now={now}
+            signedIn={Boolean(auth.profile)}
+            onSignIn={signIn}
+          />
+        )}
+
         {/* The board fills the space above "Copy image". Positioned absolutely so
             its height is fixed for the boards inside (Safari doesn't pass a
             flex-sized height down two levels of flex boxes). */}

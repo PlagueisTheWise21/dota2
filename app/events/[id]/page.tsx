@@ -7,6 +7,7 @@ import { maybeAutoSync } from "@/lib/auto-sync";
 import { getEvent, isEventId } from "@/lib/events";
 import { getLeaderboard, preloadLeaderboard } from "@/lib/leaderboard";
 import { getPickemData, preloadPickemData } from "@/lib/pickem-data";
+import { getSiteSettings } from "@/lib/site-settings";
 
 // Cached on Vercel's network and rebuilt at most once a minute, so event
 // pages load fast worldwide. Each event is built the first time it's opened
@@ -26,8 +27,21 @@ export async function generateMetadata({
 }: PageProps<"/events/[id]">): Promise<Metadata> {
   const { id } = await params;
   const { event } = await getEvent(id);
-  // The layout adds " | <site title>" (admin Site settings).
-  return { title: event ? event.name : undefined };
+  if (!event) return {};
+  const { site_title } = await getSiteSettings();
+  // Times in link previews are UTC: the reader's timezone isn't known here.
+  const deadline = Date.parse(event.prediction_deadline) > Date.now()
+    ? ` Picks lock ${new Date(event.prediction_deadline).toUTCString().slice(5, 22)} UTC.`
+    : "";
+  const description = `Make your Dota 2 tier list and pick'em for ${event.name}.${deadline}`;
+  const images = event.image_url ? [{ url: event.image_url, alt: event.name }] : [{ url: "/og", width: 1200, height: 630 }];
+  return {
+    // The layout adds " | <site title>" (admin Site settings).
+    title: event.name,
+    description,
+    openGraph: { type: "website", siteName: site_title, title: `${event.name} | ${site_title}`, description, images },
+    twitter: { card: "summary_large_image", title: `${event.name} | ${site_title}`, description, images },
+  };
 }
 
 export default async function EventPage({ params }: PageProps<"/events/[id]">) {

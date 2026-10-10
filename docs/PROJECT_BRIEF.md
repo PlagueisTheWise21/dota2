@@ -299,6 +299,21 @@ style to a modern dark theme:
   - Admin Teams: "Make fast copies" converts every logo hosted elsewhere into
     the `team-logos` bucket in one go.
   - Vercel's function region matches the Supabase region (set by the owner).
+- Added 10 October 2026:
+  - Deadline reminder (`components/DeadlineReminder.tsx`): strip above the
+    tier list / pick'em when the next stage you can pick locks within 48 h,
+    counting down; red under 2 h; "Sign in to save your picks" when signed out.
+  - "My picks" page `/me` (`components/MyPicks.tsx`, `loadMyPicks` in
+    `lib/saved-picks.ts`): every event with a saved tier list or pick'ems and
+    links to them; "My picks" in both account menus.
+  - Footer (`components/SiteFooter.tsx`: Valve disclaimer, Liquipedia credit,
+    Privacy link) on the homepage, `/me` and `/privacy`. Privacy page
+    `app/privacy/page.tsx`: the `CONTACT` constant there says how to request
+    deletion (the owner should fill in a real contact).
+  - Link previews: layout sets `metadataBase` (from `VERCEL_PROJECT_PRODUCTION_URL`),
+    Open Graph and Twitter cards; default image `/og` (`app/og/route.tsx`,
+    site title over `public/backgrounds/og-bg.jpg`); event pages use their
+    banner and "Make your Dota 2 tier list and pick'em for X. Picks lock …".
 - Event data in Supabase is demo data for testing, not accurate.
 
 ### Confirmed
@@ -310,8 +325,7 @@ style to a modern dark theme:
 - Git initialised; `main` pushed to github.com/PlagueisTheWise21/dota2.
 
 ### Not yet verified
-- A real Twitch sign-in end to end (the redirect to Twitch's login was checked
-  on 9 October 2026; the old sign-up trigger is confirmed gone).
+- Safari (layout fixes were made for it but tested only in Chromium).
 
 ### Database decisions made
 - Only `events`, `teams`, `event_teams` remain. `predictions`, `prediction_positions`,

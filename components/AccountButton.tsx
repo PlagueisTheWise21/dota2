@@ -107,6 +107,13 @@ export function AccountButton({ ready, profile, saveStatus, isAdmin = false, onS
           <p className="px-3 py-2 text-xs text-paper/60">
             Signed in as <span className="font-semibold text-paper">{profile.display_name}</span>
           </p>
+          <Link
+            href="/me"
+            role="menuitem"
+            className="block w-full rounded-md px-3 py-2 text-left font-display font-bold tracking-widest text-paper uppercase hover:bg-card-hover"
+          >
+            My picks
+          </Link>
           {isAdmin && (
             <Link
               href="/admin"

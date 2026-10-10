@@ -67,6 +67,9 @@ export function HomeAccount() {
           <p className="px-4 py-2.5 text-xs text-[#9FE1CB]/70">
             Signed in as <span className="font-semibold text-[#E1F5EE]">{profile.display_name}</span>
           </p>
+          <Link href="/me" role="menuitem" className="block px-4 py-2 text-[#E1F5EE] hover:bg-[#0F6E56]/40">
+            My picks
+          </Link>
           {auth.isAdmin && (
             <Link href="/admin" role="menuitem" className="block px-4 py-2 text-[#E1F5EE] hover:bg-[#0F6E56]/40">
               Admin panel

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { FallbackImage } from "@/components/FallbackImage";
 import { HomeAccount } from "@/components/HomeAccount";
 import { LocalTime } from "@/components/LocalTime";
+import { SiteFooter } from "@/components/SiteFooter";
 import { StatusTag } from "@/components/StatusTag";
 import { getEvents, type EventSummary } from "@/lib/events";
 
@@ -55,6 +56,7 @@ export default async function HomePage() {
           </div>
         )}
       </div>
+      <SiteFooter />
     </main>
   );
 }

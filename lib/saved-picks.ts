@@ -123,3 +123,52 @@ export function cleanGroupPicks(
     });
   });
 }
+
+/** One event in "My picks" (app/me): what the signed-in person has saved for it. */
+export type MyEventPicks = {
+  event: { id: string; name: string; image_url: string | null; start_date: string; end_date: string };
+  tierList: boolean;
+  /** Group stage slots filled, or null without saved group picks. */
+  groupPicked: number | null;
+  /** Playoff matches picked, or null without saved playoff picks. */
+  playoffsPicked: number | null;
+};
+
+type EventColumns = MyEventPicks["event"];
+
+/** Everything the person has saved, one entry per event, newest event first. */
+export async function loadMyPicks(userId: string): Promise<MyEventPicks[]> {
+  if (!supabase) return [];
+  const columns = "events(id, name, image_url, start_date, end_date)";
+  const [tiers, pickems] = await Promise.all([
+    supabase.from("saved_tier_lists").select(`event_id, ${columns}`).eq("user_id", userId),
+    supabase.from("saved_pickems").select(`event_id, stage, picks, ${columns}`).eq("user_id", userId),
+  ]);
+  if (tiers.error) throw new Error(tiers.error.message);
+  if (pickems.error) throw new Error(pickems.error.message);
+
+  const byEvent = new Map<string, MyEventPicks>();
+  const entryFor = (row: { event_id: string; events: unknown }) => {
+    const event = row.events as EventColumns | null;
+    if (!event) return null;
+    const entry = byEvent.get(row.event_id) ?? { event, tierList: false, groupPicked: null, playoffsPicked: null };
+    byEvent.set(row.event_id, entry);
+    return entry;
+  };
+
+  for (const row of tiers.data ?? []) {
+    const entry = entryFor(row);
+    if (entry) entry.tierList = true;
+  }
+  for (const row of pickems.data ?? []) {
+    const entry = entryFor(row);
+    if (!entry) continue;
+    if (row.stage === "group") {
+      entry.groupPicked = Array.isArray(row.picks) ? row.picks.filter(Boolean).length : 0;
+    }
+    if (row.stage === "playoffs") {
+      entry.playoffsPicked = row.picks && typeof row.picks === "object" ? Object.keys(row.picks).length : 0;
+    }
+  }
+  return [...byEvent.values()].sort((a, b) => b.event.start_date.localeCompare(a.event.start_date));
+}
