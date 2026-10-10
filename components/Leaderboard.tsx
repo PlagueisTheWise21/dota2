@@ -3,7 +3,7 @@
 import { TeamLogo } from "@/components/TeamLogo";
 import { useFormatTime } from "@/components/useLocalTime";
 import type { EventTeam } from "@/lib/events";
-import { POINTS, type Leaderboard as LeaderboardData } from "@/lib/leaderboard";
+import type { Leaderboard as LeaderboardData } from "@/lib/leaderboard";
 
 type LeaderboardProps = {
   leaderboard: LeaderboardData;
@@ -96,8 +96,12 @@ export function Leaderboard({
                         {isMe && <span className="text-xs text-paper/50">(you)</span>}
                       </span>
                     </td>
-                    <td className="px-2 py-1.5 text-right tabular-nums text-paper/80">{entry.group ?? "–"}</td>
-                    <td className="px-2 py-1.5 text-right tabular-nums text-paper/80">{entry.playoffs ?? "–"}</td>
+                    <td className="px-2 py-1.5 text-right tabular-nums text-paper/80">
+                      <Points points={entry.group} correct={entry.groupCorrect} />
+                    </td>
+                    <td className="px-2 py-1.5 text-right tabular-nums text-paper/80">
+                      <Points points={entry.playoffs} correct={entry.playoffsCorrect} />
+                    </td>
                     <td className="hidden px-2 py-1.5 sm:table-cell">
                       <span className="mx-auto flex h-6 w-8 items-center justify-center" title={champion?.name}>
                         {champion ? <TeamLogo team={champion} fallbackStyle={{ fontSize: 9 }} /> : <span className="text-paper/30">–</span>}
@@ -113,12 +117,23 @@ export function Leaderboard({
       )}
 
       <p className="border-t border-accent/15 px-4 py-2 text-xs text-paper/50">
-        {POINTS.group} pt per group stage pick marked ✓, {POINTS.playoffMatch} pt per playoff winner
-        picked right.{" "}
+        Progressive points: in each stage your 1st correct pick is worth 1, the 2nd 2, the 3rd
+        3, and so on (5 correct = 15 points). The count starts again for the playoffs.{" "}
         {!scoring && entries.length > 0 && "Points appear as results come in. "}
         {playoffsOpen &&
           `Playoff picks show here when they lock (${formatTime(playoffsDeadline)}).`}
       </p>
     </div>
+  );
+}
+
+/** A stage's points with how many picks were right underneath, e.g. "15" / "5 ✓". */
+function Points({ points, correct }: { points: number | null; correct: number }) {
+  if (points === null) return <>–</>;
+  return (
+    <span className="inline-flex flex-col items-end leading-tight">
+      <span>{points}</span>
+      <span className="text-[0.65rem] text-muted/70">{correct} ✓</span>
+    </span>
   );
 }

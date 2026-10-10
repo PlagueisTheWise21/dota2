@@ -190,9 +190,11 @@ style to a modern dark theme:
 - Pick'em leaderboard (built 10 October 2026): third event page tab
   "Leaderboard" ("Ranks" on phones), `components/Leaderboard.tsx`, scored on
   the server by `lib/leaderboard.ts` from `saved_pickems` + `profiles`. A pick
-  scores exactly when the pick'em shows it with a ✓: 1 point per group stage
-  pick (Swiss box / exact round-robin place) and 1 per playoff winner
-  (`POINTS` in `lib/leaderboard.ts`). Rows only appear once a stage's
+  counts when the pick'em shows it with a ✓ (Swiss box / exact group place /
+  playoff winner). Progressive points (owner's choice, 10 October 2026): in
+  each stage the 1st correct pick is worth 1, the 2nd 2, the 3rd 3, ... so
+  n correct = n(n+1)/2 (`progressivePoints` in `lib/leaderboard.ts`); the count
+  restarts for the playoffs. The table shows points and number correct. Rows only appear once a stage's
   deadline has passed (row level security), so the table fills in when group
   picks lock and again when playoff picks lock. Equal totals share a rank;
   shows each player's champion pick and highlights the signed-in player. No

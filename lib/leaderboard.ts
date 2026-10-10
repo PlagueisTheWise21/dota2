@@ -25,13 +25,19 @@ import { supabase } from "@/lib/supabase";
  * early; the leaderboard fills in at each deadline.
  */
 
-/** Points per correct pick. Change here to weight the stages differently. */
-export const POINTS = {
-  /** Swiss: a team in the right box (3–0, advance, 0–3). Groups (round-robin/GSL): a team in its exact place. */
-  group: 1,
-  /** A correctly picked playoff match winner (including the grand final). */
-  playoffMatch: 1,
-};
+/**
+ * Progressive scoring (owner's choice, 10 October 2026): within a stage the
+ * 1st correct pick is worth 1 point, the 2nd 2, the 3rd 3, and so on, so
+ * n correct picks score 1 + 2 + ... + n. The count starts again at 1 for the
+ * playoffs. Only how many are right matters, not their order.
+ *
+ * A correct pick: Swiss, a team in the right box (3–0, advance, 0–3);
+ * groups (round-robin/GSL), a team in its exact place; playoffs, a match
+ * winner (including the grand final).
+ */
+export function progressivePoints(correct: number): number {
+  return (correct * (correct + 1)) / 2;
+}
 
 export type LeaderboardEntry = {
   userId: string;
@@ -39,8 +45,12 @@ export type LeaderboardEntry = {
   avatarUrl: string | null;
   /** Points from the group stage, or null without saved group picks. */
   group: number | null;
+  /** Correct group stage picks (0 without picks). */
+  groupCorrect: number;
   /** Points from the playoffs, or null without saved playoff picks. */
   playoffs: number | null;
+  /** Correct playoff picks (0 without picks). */
+  playoffsCorrect: number;
   total: number;
   /** Team id picked to win the grand final. */
   champion: string | null;
@@ -54,30 +64,30 @@ export type Leaderboard = {
   scoring: boolean;
 };
 
-/** Points for one person's group picks; 0 until the final group results are in. */
-export function scoreGroup(data: PickemData, slots: Slots): number {
+/** How many of one person's group picks are right; 0 until the final group results are in. */
+export function countGroupCorrect(data: PickemData, slots: Slots): number {
   if (data.groupFormat === "swiss" && data.groupRecords) {
     const groups = swissGroups(data.groupTeamIds.length);
     const records = new Map(data.groupRecords.map((record) => [record.teamId, record]));
     return slots.filter((teamId, index) => {
       const record = teamId ? records.get(teamId) : undefined;
       return record ? swissPickCorrect(groupIndexOfSlot(groups, index), record) : false;
-    }).length * POINTS.group;
+    }).length;
   }
   if (data.groupFormat === "groups" && data.groupPlacements) {
     const placements = data.groupPlacements;
     return groupSegments(data).reduce((sum, segment) => {
       const groupSlots = slots.slice(segment.offset, segment.offset + segment.size);
       return sum + groupSlots.filter((id, index) => id && placements[id] === index + 1).length;
-    }, 0) * POINTS.group;
+    }, 0);
   }
   return 0;
 }
 
-/** Points for one person's playoff picks, from the matches played so far. */
-export function scorePlayoffs(bracket: BracketMatch[], picks: BracketPicks): number {
+/** How many of one person's playoff picks are right, from the matches played so far. */
+export function countPlayoffsCorrect(bracket: BracketMatch[], picks: BracketPicks): number {
   const { resolved } = resolveBracket(bracket, picks);
-  return [...resolved.values()].filter((r) => r.pick && r.pick === realWinner(r.match)).length * POINTS.playoffMatch;
+  return [...resolved.values()].filter((r) => r.pick && r.pick === realWinner(r.match)).length;
 }
 
 type SavedRow = {
@@ -118,18 +128,24 @@ export async function getLeaderboard(eventId: string, data: PickemData): Promise
       name: row.profiles?.display_name ?? "Player",
       avatarUrl: row.profiles?.avatar_url ?? null,
       group: null,
+      groupCorrect: 0,
       playoffs: null,
+      playoffsCorrect: 0,
       champion: null,
     };
     if (row.stage === "group" && Array.isArray(row.picks) && segments.length > 0) {
       // Same clean-up as when the picks load on the event page.
       const slots = cleanGroupPicks(row.picks as Slots, segments);
-      if (slots.some(Boolean)) entry.group = scoreGroup(data, slots);
+      if (slots.some(Boolean)) {
+        entry.groupCorrect = countGroupCorrect(data, slots);
+        entry.group = progressivePoints(entry.groupCorrect);
+      }
     }
     if (row.stage === "playoffs" && row.picks && typeof row.picks === "object" && data.bracket.length > 0) {
       const picks = resolveBracket(data.bracket, row.picks as BracketPicks).picks;
       if (Object.keys(picks).length > 0) {
-        entry.playoffs = scorePlayoffs(data.bracket, picks);
+        entry.playoffsCorrect = countPlayoffsCorrect(data.bracket, picks);
+        entry.playoffs = progressivePoints(entry.playoffsCorrect);
         entry.champion = final ? (picks[final.id] ?? null) : null;
       }
     }
