@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { after } from "next/server";
 import { EventView } from "@/components/EventView";
+import { maybeAutoSync } from "@/lib/auto-sync";
 import { getEvent } from "@/lib/events";
 import { getLeaderboard } from "@/lib/leaderboard";
 import { getPickemData } from "@/lib/pickem-data";
@@ -9,6 +11,9 @@ import { getPickemData } from "@/lib/pickem-data";
 // Always read the event from Supabase on request, so dashboard edits show up
 // without rebuilding the site.
 export const dynamic = "force-dynamic";
+
+// Room for an automatic Liquipedia sync after the page is sent.
+export const maxDuration = 60;
 
 export async function generateMetadata({
   params,
@@ -38,6 +43,10 @@ export default async function EventPage({ params }: PageProps<"/events/[id]">) {
   if (!event) {
     notFound();
   }
+
+  // Live events with auto-sync on refresh from Liquipedia in the background
+  // (at most every 30 minutes); the next page load shows the new results.
+  after(() => maybeAutoSync(event.id));
 
   const pickemData = await getPickemData(event.id, event.group_format);
   const leaderboard = await getLeaderboard(event.id, pickemData);

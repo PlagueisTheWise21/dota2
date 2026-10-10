@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button, errorText, Field, formatUtc, TextInput } from "@/components/admin/ui";
-import { loadEventSyncInfo, runSync, type AdminEvent, type SyncResult } from "@/lib/admin";
+import { loadEventSyncInfo, runSync, updateEvent, type AdminEvent, type SyncResult } from "@/lib/admin";
 
 /**
  * Runs the Liquipedia sync from the admin page (on the server, see
@@ -22,6 +22,21 @@ export function SyncPanel({
   const [running, setRunning] = useState<"preview" | "sync" | null>(null);
   const [result, setResult] = useState<SyncResult | null>(null);
   const [lastSynced, setLastSynced] = useState<string | null>(null);
+  const [autoSync, setAutoSync] = useState(event?.auto_sync ?? false);
+  const [autoSyncError, setAutoSyncError] = useState<string | null>(null);
+
+  async function changeAutoSync(on: boolean) {
+    if (!event) return;
+    setAutoSync(on);
+    setAutoSyncError(null);
+    try {
+      await updateEvent(event.id, { auto_sync: on });
+      await reload();
+    } catch (reason) {
+      setAutoSync(!on);
+      setAutoSyncError(errorText(reason));
+    }
+  }
 
   useEffect(() => {
     if (!event) return;
@@ -69,10 +84,30 @@ export function SyncPanel({
       </div>
 
       <p className="text-xs text-paper/50">
-        {event && <>Last synced: {formatUtc(lastSynced)}. </>}
+        {event && <>Last synced: {formatUtc(event.last_synced_at ?? lastSynced)}. </>}
         Each preview or sync uses 4 of Liquipedia&apos;s 60 requests an hour. Syncing updates the
         teams, matches, group tables and placements{event ? " and links this event to the page" : ""}.
       </p>
+
+      {event && (
+        <div className="flex flex-col gap-1 border-t border-paper/20 pt-3">
+          <label className="flex cursor-pointer items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={autoSync}
+              onChange={(e) => void changeAutoSync(e.target.checked)}
+              className="h-4 w-4 accent-[#e8ecf1]"
+            />
+            Sync automatically while the event is live
+          </label>
+          <p className="text-xs text-paper/50">
+            When someone opens the event page, it re-syncs in the background if the last sync was
+            over 30 minutes ago (from a day before the start to a day after the end). Needs a
+            Liquipedia page.
+          </p>
+          {autoSyncError && <p className="text-sm text-[#f87171]">{autoSyncError}</p>}
+        </div>
+      )}
 
       {result && (
         <div

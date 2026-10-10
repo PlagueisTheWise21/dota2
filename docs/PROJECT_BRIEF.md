@@ -127,8 +127,11 @@ Do not over-engineer.
         (`swissGroups`, `groupPlaces`, `groupSegments`).
     - Playoffs: double-elimination bracket from `matches`; click a team to pick
       each winner; picks fill later rounds, losers drop via `loser_to`, and
-      picks made impossible by a change are cleared. Finished matches show
-      ✓/✗; "Your champion" from the grand final pick.
+      picks made impossible by a change are cleared. Once picks lock the
+      bracket shows the real results (10 October 2026): real teams (your
+      picked teams, faded, where not known yet), scores, winner bold, loser
+      dimmed, ✓/✗ on your pick, "Your pick: X ✗" when your team isn't in the
+      real match, ✓/✗ on "Your champion". The copied image still shows picks.
     - Data from `lib/pickem-data.ts`; events without Liquipedia data show a
       message. Credits Liquipedia (CC BY-SA 3.0), which the licence requires.
       Not saved yet.
@@ -209,8 +212,14 @@ Do not over-engineer.
     `npm run sync` uses the same module. On Vercel this needs
     `LIQUIPEDIA_API_KEY` and `SUPABASE_SERVICE_ROLE_KEY` as environment
     variables (server only, never NEXT_PUBLIC_).
-  - Later options (not agreed yet): automatic sync during live events,
-    manual result fixes, event visibility/carousel order, homepage text,
+  - Automatic sync (10 October 2026; `supabase/migrations/20261010b_auto_sync.sql`,
+    `lib/auto-sync.ts`): "Sync automatically while the event is live" switch
+    in the Liquipedia section (`events.auto_sync`). The event page runs
+    `maybeAutoSync` after sending the page (`after` from next/server) and
+    re-syncs when the last sync (`events.last_synced_at`, set by every sync)
+    is over 30 minutes old, from a day before the start to a day after the
+    end. No cron needed; it only syncs while people view the event.
+  - Later options (not agreed yet): manual result fixes, event visibility/carousel order, homepage text,
     pick'em stats, users list, change log, health check.
 - The owner has a Liquipedia API key, for Phase 9. It must go in `.env.local`
   without a `NEXT_PUBLIC_` prefix (server only) and never in code or chat.

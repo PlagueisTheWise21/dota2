@@ -389,6 +389,7 @@ function Bracket({
   }
 
   const champion = final ? resolved.get(final.id)?.pick : null;
+  const realChampion = final ? realWinner(final) : null;
   const finishedPicked = [...resolved.values()].filter((r) => r.pick && realWinner(r.match));
   const correct = finishedPicked.filter((r) => r.pick === realWinner(r.match)).length;
   const pickedCount = [...resolved.values()].filter((r) => r.pick).length;
@@ -419,6 +420,7 @@ function Bracket({
                   teamsById={teamsById}
                   onPick={(teamId) => pick(m.id, teamId)}
                   readOnly={locked}
+                  showResults={locked}
                 />
               ))}
           </div>
@@ -462,6 +464,11 @@ function Bracket({
               <TeamLogo team={teamsById.get(champion)!} fallbackStyle={{ fontSize: "0.6rem" }} />
             </span>
             {teamsById.get(champion)!.name}
+            {realChampion && (
+              <span className={realChampion === champion ? "text-[#22c55e]" : "text-[#ef4444]"}>
+                {realChampion === champion ? "✓" : "✗"}
+              </span>
+            )}
           </span>
         ) : (
           <span className="text-sm text-paper/40">Pick the grand final</span>
@@ -471,42 +478,84 @@ function Bracket({
   );
 }
 
+/**
+ * One playoff match. While picks are open it shows the teams your picks lead
+ * to; click one to pick it. Once picks lock (`showResults`) it shows what
+ * really happened: the real teams (or your picked teams, faded, where the
+ * real ones aren't known yet), scores, the winner in bold, and ✓/✗ on your pick.
+ */
 function MatchCard({
   entry,
   teamsById,
   onPick,
   readOnly,
+  showResults,
 }: {
   entry: ResolvedMatch;
   teamsById: Map<string, EventTeam>;
   onPick: (teamId: string) => void;
   readOnly: boolean;
+  showResults: boolean;
 }) {
-  const winner = realWinner(entry.match);
+  const { match, pick } = entry;
+  const winner = realWinner(match);
+  const realTeams = [match.team1, match.team2];
+  const scores = [match.score1, match.score2];
+  const hasScore = scores.some((score) => score !== null);
+
+  const rows = entry.teams.map((predicted, index) => {
+    const real = realTeams[index];
+    const teamId = showResults ? (real ?? predicted) : predicted;
+    return { teamId, guess: showResults && !real && Boolean(predicted) };
+  });
+
+  // Locked, and the team you picked isn't in the real match: say so under it.
+  const missedPick =
+    showResults && pick && realTeams[0] && realTeams[1] && !realTeams.includes(pick)
+      ? teamsById.get(pick)
+      : undefined;
+
   return (
     <div className="border border-paper/60 bg-[#202020] shadow-[2px_2px_0_0_#000]">
-      {entry.teams.map((teamId, index) => {
+      {rows.map(({ teamId, guess }, index) => {
         const team = teamId ? teamsById.get(teamId) : undefined;
-        const picked = Boolean(teamId) && entry.pick === teamId;
+        const picked = Boolean(teamId) && pick === teamId;
         const result = picked && winner ? (winner === teamId ? "correct" : "wrong") : null;
+        const isWinner = Boolean(winner) && winner === teamId;
+        const isLoser = Boolean(winner) && Boolean(teamId) && winner !== teamId;
+        const tone = showResults
+          ? guess
+            ? "italic text-paper/40"
+            : isWinner
+              ? "font-bold text-paper"
+              : isLoser
+                ? "text-paper/40"
+                : "text-paper/85"
+          : picked
+            ? "font-bold text-paper"
+            : pick
+              ? "text-paper/40 hover:text-paper"
+              : "text-paper/85 hover:bg-[#2a2a2a]";
         return (
           <button
             key={index}
             type="button"
             disabled={!team || readOnly}
             onClick={() => team && onPick(team.id)}
-            title={team ? (readOnly ? team.name : `Pick ${team.name}`) : "Decided by an earlier pick"}
+            title={
+              team
+                ? guess
+                  ? `${team.name} (your pick; not decided yet)`
+                  : readOnly
+                    ? team.name
+                    : `Pick ${team.name}`
+                : "Decided by an earlier pick"
+            }
             className={`flex h-[clamp(1.6rem,3.6dvh,2rem)] w-full cursor-pointer items-center gap-2 px-2 text-left text-[clamp(0.7rem,1.6dvh,0.8rem)] transition-colors disabled:cursor-default ${
               index === 1 ? "border-t border-paper/30" : ""
-            } ${
-              picked
-                ? "bg-[#2f2f2f] font-bold text-paper shadow-[inset_3px_0_0_0_#e8ecf1]"
-                : entry.pick
-                  ? "text-paper/40 hover:text-paper"
-                  : "text-paper/85 hover:bg-[#2a2a2a]"
-            }`}
+            } ${picked ? "bg-[#2f2f2f] shadow-[inset_3px_0_0_0_#e8ecf1]" : ""} ${tone}`}
           >
-            <span className="flex h-[70%] aspect-square shrink-0 items-center justify-center">
+            <span className={`flex h-[70%] aspect-square shrink-0 items-center justify-center ${guess || isLoser ? "opacity-50" : ""}`}>
               {team && <TeamLogo team={team} fallbackStyle={{ fontSize: "0.5rem" }} />}
             </span>
             <span className={`min-w-0 flex-1 truncate ${team ? "" : "italic text-paper/30"}`}>
@@ -520,9 +569,18 @@ function MatchCard({
                 {result === "correct" ? "✓" : "✗"}
               </span>
             )}
+            {hasScore && !guess && (
+              <span className="w-4 shrink-0 text-right font-display tabular-nums">{scores[index] ?? 0}</span>
+            )}
           </button>
         );
       })}
+      {missedPick && (
+        <p className="flex items-center gap-1 border-t border-paper/30 px-2 py-0.5 text-[0.65rem] text-paper/50">
+          <span className="truncate">Your pick: {missedPick.name}</span>
+          <span className="font-bold text-[#ef4444]">✗</span>
+        </p>
+      )}
     </div>
   );
 }

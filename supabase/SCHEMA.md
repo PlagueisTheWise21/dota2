@@ -134,6 +134,9 @@ Created by `supabase/migrations/20261010_admin.sql`.
 - Write policies: admins may insert, update and delete `events`, `teams` and
   `event_teams` (grants to authenticated + `is_admin()` policies). Everyone
   else still has read-only access.
+- `events.auto_sync` (boolean, default false) and `events.last_synced_at`
+  (timestamptz) from `20261010b_auto_sync.sql`: automatic Liquipedia sync
+  switch and the time of the last sync (written by every sync).
 - `public.merge_teams(p_keep, p_remove)` (admins only): moves event_teams,
   matches, group_standings, event_placements and team ids inside
   saved_tier_lists/saved_pickems to p_keep, then deletes p_remove.

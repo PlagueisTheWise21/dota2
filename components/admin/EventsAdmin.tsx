@@ -178,6 +178,7 @@ function EventDetails({
         image_url: imageUrl.trim() || null,
         liquipedia_page: liquipediaPage.trim().replace(/ /g, "_") || null,
         group_format: groupFormat || null,
+        auto_sync: event?.auto_sync ?? false,
       };
       const saved = await saveEvent(event?.id ?? null, input);
       if (event && event.image_url !== saved.image_url) await removeOwnImage("event-banners", event.image_url);

@@ -22,6 +22,10 @@ export type AdminEvent = {
   image_url: string | null;
   liquipedia_page: string | null;
   group_format: string | null;
+  /** Re-sync from Liquipedia automatically while the event is live. */
+  auto_sync: boolean;
+  /** When the sync last wrote this event (manual or automatic). */
+  last_synced_at: string | null;
 };
 
 export type AdminTeam = {
@@ -49,7 +53,7 @@ export type EventSyncInfo = {
 };
 
 const EVENT_COLUMNS =
-  "id, name, slug, start_date, end_date, prediction_deadline, playoff_deadline, status, image_url, liquipedia_page, group_format";
+  "id, name, slug, start_date, end_date, prediction_deadline, playoff_deadline, status, image_url, liquipedia_page, group_format, auto_sync, last_synced_at";
 const TEAM_COLUMNS = "id, name, short_name, logo_url, liquipedia_template";
 
 function db() {
@@ -106,7 +110,7 @@ export async function loadEventSyncInfo(eventId: string): Promise<EventSyncInfo>
 
 // --- Events -------------------------------------------------------------------
 
-export type EventInput = Omit<AdminEvent, "id">;
+export type EventInput = Omit<AdminEvent, "id" | "last_synced_at">;
 
 /** Creates the event (no id) or saves changes to it; returns the saved row. */
 export async function saveEvent(id: string | null, input: EventInput): Promise<AdminEvent> {
