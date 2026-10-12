@@ -69,9 +69,11 @@ export const getPickemData = cache(async (
   const groupMatches = rows.filter((row) => row.stage === "group");
 
   // Which group stage pick'em fits. Events synced before formats were
-  // recorded have a group stage but no format: those were Swiss.
+  // recorded have a group stage but no format: those were Swiss. Groups set
+  // by hand on the admin page (group tables but no matches yet) count too.
+  const groupsByHand = groupMatches.length === 0 && standings.length > 0;
   const format: GroupFormat | null =
-    groupMatches.length === 0
+    groupMatches.length === 0 && !groupsByHand
       ? null
       : groupFormat === "round_robin" || groupFormat === "gsl"
         ? "groups"
@@ -106,7 +108,9 @@ export const getPickemData = cache(async (
       groupOf.has(row.team1_id!) &&
       groupOf.has(row.team2_id!) &&
       groupOf.get(row.team1_id!) !== groupOf.get(row.team2_id!);
-    const allPlayed = groupMatches.filter((row) => !crossGroup(row)).every((row) => row.finished);
+    const inGroups = groupMatches.filter((row) => !crossGroup(row));
+    // No matches yet (groups set by hand) means nothing has been played.
+    const allPlayed = inGroups.length > 0 && inGroups.every((row) => row.finished);
     if (allPlayed) {
       const lastRound = new Map<string, { round: number; placement: number | null }>();
       for (const row of standings) {

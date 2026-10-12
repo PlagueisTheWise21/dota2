@@ -151,6 +151,66 @@ export async function saveEventTeams(eventId: string, teamIds: string[], previou
   }
 }
 
+// --- Groups set by hand ----------------------------------------------------------
+
+/** An event's groups as stored in `group_standings` (earliest round). */
+export type ManualGroups = {
+  /** Team ids per group: index 0 = Group A. */
+  groups: string[][];
+  /** Places per group that go straight through ("up"). */
+  advance: number;
+  /** Places after those that play on in a later stage ("stay"). */
+  continues: number;
+};
+
+/** The event's current groups (from a sync or set by hand), or null if none. */
+export async function loadGroups(eventId: string): Promise<ManualGroups | null> {
+  const rows = check(
+    await db().from("group_standings").select("team_id, round, group_index, status").eq("event_id", eventId),
+  ) as { team_id: string; round: number; group_index: number; status: string | null }[];
+  if (rows.length === 0) return null;
+  const firstRound = Math.min(...rows.map((row) => row.round));
+  const first = rows.filter((row) => row.round === firstRound);
+  const groups: string[][] = [];
+  for (const row of first) (groups[row.group_index] ??= []).push(row.team_id);
+  const groupA = first.filter((row) => row.group_index === 0);
+  return {
+    groups: Array.from({ length: groups.length }, (_, index) => groups[index] ?? []),
+    advance: groupA.filter((row) => row.status === "up").length,
+    continues: groupA.filter((row) => row.status === "stay").length,
+  };
+}
+
+/**
+ * Replaces the event's group tables with these groups (round 1, nothing
+ * played yet), so the group stage pick'em opens before Liquipedia has the
+ * draw. A later Liquipedia sync overwrites them. Also makes sure the event's
+ * group format is one that orders each group (round-robin unless GSL).
+ */
+export async function saveGroups(event: AdminEvent, value: ManualGroups) {
+  check(await db().from("group_standings").delete().eq("event_id", event.id));
+  const rows = value.groups.flatMap((teamIds, groupIndex) =>
+    teamIds.map((teamId, position) => ({
+      event_id: event.id,
+      team_id: teamId,
+      round: 1,
+      group_index: groupIndex,
+      placement: null,
+      // Which places go through; the order inside a group doesn't matter here.
+      status: position < value.advance ? "up" : position < value.advance + value.continues ? "stay" : "down",
+    })),
+  );
+  if (rows.length) check(await db().from("group_standings").insert(rows));
+  if (event.group_format !== "round_robin" && event.group_format !== "gsl") {
+    await updateEvent(event.id, { group_format: "round_robin" });
+  }
+}
+
+/** Removes the event's group tables (hand-made or synced). */
+export async function clearGroups(eventId: string) {
+  check(await db().from("group_standings").delete().eq("event_id", eventId));
+}
+
 // --- Teams --------------------------------------------------------------------
 
 export type TeamInput = Pick<AdminTeam, "name" | "short_name" | "logo_url">;

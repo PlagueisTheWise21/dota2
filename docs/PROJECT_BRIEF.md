@@ -240,6 +240,15 @@ style to a modern dark theme:
     `public/favicon.ico`, moved out of `app/` so it no longer overrides the
     setting). Read by `generateMetadata` in `app/layout.tsx`. The homepage
     header name is still the `SITE_NAME` constant in `app/page.tsx`.
+  - Groups set by hand (12 October 2026; `supabase/migrations/20261012_manual_groups.sql`,
+    `components/admin/GroupsEditor.tsx`, `loadGroups`/`saveGroups`/`clearGroups`
+    in `lib/admin.ts`): for events whose draw isn't on Liquipedia yet. Writes
+    `group_standings` round 1 (status up/stay/down per place count, no
+    placements); `lib/pickem-data.ts` shows a group stage from group tables
+    even without matches, and only marks results once group matches exist.
+    A sync with Liquipedia group tables replaces the event's whole set; saved
+    picks are never touched by a sync (match team names to Liquipedia's and
+    keep group letters in Liquipedia's order, or merge duplicate teams).
   - Later options (not agreed yet): manual result fixes, event visibility/homepage order, homepage text,
     pick'em stats, users list, change log, health check.
 - The owner has a Liquipedia API key, for Phase 9. It must go in `.env.local`

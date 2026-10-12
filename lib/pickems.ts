@@ -86,7 +86,7 @@ export function groupPlaces(size: number, advance: number, continues = 0): SlotG
     label: ordinal(index + 1),
     sublabel: index < advance ? "advance" : index < advance + continues ? "continues" : "out",
     size: 1,
-    color: index < advance ? undefined : index < advance + continues ? "#eab308" : "#ef4444",
+    color: index < advance ? "#22c55e" : index < advance + continues ? "#eab308" : "#ef4444",
   }));
 }
 

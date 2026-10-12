@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { EventTeamsEditor } from "@/components/admin/EventTeamsEditor";
+import { GroupsEditor } from "@/components/admin/GroupsEditor";
 import { SyncPanel } from "@/components/admin/SyncPanel";
 import {
   Button,
@@ -119,6 +120,7 @@ export function EventsAdmin({ data, reload }: { data: AdminData; reload: () => P
             />
             <Deadlines event={selected} reload={reload} />
             <EventTeamsEditor event={selected} data={data} reload={reload} />
+            <GroupsEditor event={selected} data={data} reload={reload} />
             <Section title="Liquipedia sync">
               <SyncPanel event={selected} reload={reload} />
             </Section>

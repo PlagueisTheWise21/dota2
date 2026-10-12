@@ -89,6 +89,8 @@ New columns:
 ### group_standings
 `id`, `event_id` (FK), `team_id` (FK), `round`, `placement`, `wins`, `losses`,
 `draws`, `status` (Liquipedia: 'up', 'down', ...), `group_index`. Unique (event_id, team_id, round).
+Admins may also insert/update/delete rows (`20261012_manual_groups.sql`) to set a
+group draw by hand; a sync with Liquipedia group tables replaces all of an event's rows.
 
 ### event_placements
 `id`, `event_id` (FK), `team_id` (FK), `place_from`, `place_to`, `prize_money`.
