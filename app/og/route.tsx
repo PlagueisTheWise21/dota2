@@ -44,11 +44,13 @@ export async function GET() {
             backgroundColor: "rgba(13,29,34,0.88)",
           }}
         >
-          <div style={{ display: "flex", fontSize: 28, fontWeight: 700, letterSpacing: 6, color: "#5DCAA5", textTransform: "uppercase" }}>
-            Rank the teams. Call the results.
+          <div style={{ display: "flex", fontSize: 26, fontWeight: 700, letterSpacing: 3, color: "#5DCAA5", textTransform: "uppercase" }}>
+            Tier lists and pick&apos;ems for every big Dota 2 event
           </div>
           <div style={{ display: "flex", fontSize: 76, fontWeight: 800, lineHeight: 1.05, color: "#E1F5EE" }}>{site_title}</div>
-          <div style={{ display: "flex", fontSize: 30, color: "#9FE1CB" }}>Tier lists and pick&apos;ems for Dota 2 events</div>
+          <div style={{ display: "flex", fontSize: 30, fontWeight: 700, color: "#E1F5EE" }}>
+            No account needed to play. Sign in with Twitch to save your picks.
+          </div>
         </div>
       </div>
     ),

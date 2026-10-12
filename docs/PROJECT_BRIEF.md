@@ -317,8 +317,8 @@ style to a modern dark theme:
     links to them; "My picks" in both account menus.
   - Footer (`components/SiteFooter.tsx`: Valve disclaimer, Liquipedia credit,
     Privacy link) on the homepage, `/me` and `/privacy`. Privacy page
-    `app/privacy/page.tsx`: the `CONTACT` constant there says how to request
-    deletion (the owner should fill in a real contact).
+    `app/privacy/page.tsx`: deletion requests go to the owner's Twitch channel
+    (`CONTACT_NAME` / `CONTACT_URL`).
   - Link previews: layout sets `metadataBase` (from `VERCEL_PROJECT_PRODUCTION_URL`),
     Open Graph and Twitter cards; default image `/og` (`app/og/route.tsx`,
     site title over `public/backgrounds/og-bg.jpg`); event pages use their

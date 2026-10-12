@@ -5,11 +5,9 @@ import { SiteFooter } from "@/components/SiteFooter";
 
 export const metadata: Metadata = { title: "Privacy" };
 
-/**
- * How to reach the site owner for data requests. Shown on this page; edit it
- * to your preferred contact (e.g. a Twitch channel, Discord or email).
- */
-const CONTACT = "the site owner";
+/** Where people ask for their data to be deleted: the owner's Twitch channel. */
+const CONTACT_NAME = "UrbanGentrification";
+const CONTACT_URL = "https://www.twitch.tv/UrbanGentrification";
 
 const UPDATED = "10 October 2026";
 
@@ -68,8 +66,12 @@ export default function PrivacyPage() {
 
           <Part title="Deleting your data">
             <p>
-              Signing out removes your session from your browser. To have your account and saved picks deleted, contact{" "}
-              {CONTACT}. Data from your Twitch account is only updated when you sign in again.
+              Signing out removes your session from your browser. To have your account and saved picks deleted,
+              message{" "}
+              <a href={CONTACT_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#bf94ff] hover:underline">
+                {CONTACT_NAME}
+              </a>{" "}
+              on Twitch. Data from your Twitch account is only updated when you sign in again.
             </p>
           </Part>
 
