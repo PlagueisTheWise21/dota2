@@ -13,7 +13,8 @@ export const revalidate = 60;
 
 // Edit the homepage wording here.
 const SITE_NAME = "Dota 2 Predictions";
-const TAGLINE = "Rank the teams. Call the results.";
+const SUBTITLE = "Tier lists and pick'ems for every big Dota 2 event";
+const INTRO = "No account needed to play. Sign in with Twitch to save your picks and climb the leaderboards.";
 
 /**
  * Homepage: top bar, then the first event (live or next up) as a large
@@ -33,9 +34,10 @@ export default async function HomePage() {
       </header>
 
       <div className="relative z-10 mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-[clamp(0.6rem,2dvh,1.25rem)] px-4 py-[clamp(0.75rem,3dvh,2rem)] sm:px-8">
-        <h1 className="shrink-0 text-xs font-semibold tracking-[0.25em] text-[#5DCAA5] uppercase sm:text-sm">
-          {TAGLINE}
-        </h1>
+        <div className="shrink-0">
+          <h1 className="text-base font-bold tracking-[0.2em] text-[#5DCAA5] uppercase sm:text-xl">{SUBTITLE}</h1>
+          <p className="mt-1 text-sm font-bold text-[#E1F5EE] sm:text-base">{INTRO}</p>
+        </div>
 
         {!featured ? (
           <p className="rounded-xl border border-white/10 bg-[#0d1d22]/90 px-6 py-4 text-sm text-[#9FE1CB]">
