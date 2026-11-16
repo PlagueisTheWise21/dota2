@@ -100,9 +100,11 @@ export type OverlayLayout = {
 
 /**
  * Measured from a 1080p Dota 2 screenshot (owner's, 16 November 2026): portraits
- * 63 px apart, Radiant centres from 571, Dire from 1094, portrait bottoms at ~40 px.
+ * 63 px apart, Radiant centres from 571, Dire from 1094, portrait bottoms at ~40 px;
+ * health bars ~40-47 px, mana bars ~47-54 px (owner's second screenshot, 17 November 2026),
+ * respawn timers under dead heroes down to ~64 px (first screenshot), so names start at 68 px.
  */
-export const DEFAULT_LAYOUT: OverlayLayout = { y: 44, step: 63, radiantX: 571, direX: 1094, size: 13, logoSize: 40, logoY: 1 };
+export const DEFAULT_LAYOUT: OverlayLayout = { y: 68, step: 63, radiantX: 571, direX: 1094, size: 13, logoSize: 40, logoY: 1 };
 
 export function layoutFromParams(params: URLSearchParams): OverlayLayout {
   const read = (key: keyof OverlayLayout, min: number, max: number) => {
