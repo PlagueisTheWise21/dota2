@@ -30,7 +30,16 @@ export default async function HomePage() {
     <main className="relative flex h-dvh w-full flex-col overflow-hidden text-[#E1F5EE]">
       <header className="relative z-20 flex shrink-0 items-center justify-between border-b border-[#1D9E75]/20 bg-[#071318]/50 px-4 py-3 backdrop-blur sm:px-8">
         <span className="font-display text-lg font-bold tracking-widest uppercase sm:text-xl">{SITE_NAME}</span>
-        <HomeAccount />
+        <div className="flex items-center gap-3 sm:gap-5">
+          <Link
+            href="/overlay"
+            className="text-sm font-semibold text-[#9FE1CB] transition-colors hover:text-white"
+            title="Player names for your Dota 2 stream (OBS overlay)"
+          >
+            Stream overlay
+          </Link>
+          <HomeAccount />
+        </div>
       </header>
 
       <div className="relative z-10 mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-[clamp(0.6rem,2dvh,1.25rem)] px-4 py-[clamp(0.75rem,3dvh,2rem)] sm:px-8">
