@@ -326,7 +326,8 @@ style to a modern dark theme:
 - Stream overlay (16 November 2026): `/overlay` (`app/overlay/page.tsx`,
   `components/OverlayBuilder.tsx`) picks Radiant and Dire from a tournament's
   Liquipedia placement data (`lib/overlay-teams.ts`, default `1win_Essence/3`,
-  players ordered by position 1-5, cached 1 h). `/overlay/image`
+  players start in position order 1-5 and can be put in any portrait slot on the
+  page, passed as `rorder`/`dorder`; cached 1 h). `/overlay/image`
   (`app/overlay/image/route.tsx`) returns a transparent PNG (1080p, 1440p or 4K via `?res=`; layout values in 1080p px, scaled) with the
   names in small white text under the top bar hero portraits, plus each team's
   Liquipedia logo (team template, dark version) beside the outermost portrait

@@ -9,7 +9,7 @@ import {
 } from "@/lib/overlay-teams";
 
 /**
- * GET /overlay/image?radiant=<team>&dire=<team>[&res=1080p|1440p|4k&page=…&y=…&step=…&radiantX=…&direX=…&size=…]
+ * GET /overlay/image?radiant=<team>&dire=<team>[&rorder=…&dorder=…&res=1080p|1440p|4k&page=…&y=…&step=…&radiantX=…&direX=…&size=…]
  *
  * A transparent PNG at the chosen resolution (default 1920x1080) with the ten player names placed under the
  * Dota 2 top bar hero portraits: Radiant on the left, Dire on the right, each
@@ -53,8 +53,8 @@ export async function GET(request: NextRequest) {
 
   const labelWidth = layout.step + 30;
   const labels = [
-    ...(radiant?.players ?? []).map((name, index) => ({ name, x: layout.radiantX + index * layout.step })),
-    ...(dire?.players ?? []).map((name, index) => ({ name, x: layout.direX + index * layout.step })),
+    ...ordered(radiant?.players, params.get("rorder")).map((name, index) => ({ name, x: layout.radiantX + index * layout.step })),
+    ...ordered(dire?.players, params.get("dorder")).map((name, index) => ({ name, x: layout.direX + index * layout.step })),
   ];
 
   return new ImageResponse(
@@ -145,4 +145,18 @@ async function logoDataUrl(url: string | null | undefined): Promise<string | nul
   } catch {
     return null;
   }
+}
+
+/**
+ * The players in the order chosen on the page (`rorder` / `dorder`: roster
+ * indices per slot, left to right, e.g. "2,0,1,3,4"); position order if missing or invalid.
+ */
+function ordered(players: string[] | undefined, order: string | null): string[] {
+  if (!players) return [];
+  const indices = (order ?? "").split(",").filter(Boolean).map(Number);
+  const valid =
+    indices.length === players.length &&
+    new Set(indices).size === indices.length &&
+    indices.every((index) => Number.isInteger(index) && index >= 0 && index < players.length);
+  return valid ? indices.map((index) => players[index]) : players;
 }

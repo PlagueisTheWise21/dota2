@@ -32,6 +32,9 @@ export function OverlayBuilder({
 }) {
   const [radiant, setRadiant] = useState("");
   const [dire, setDire] = useState("");
+  /** Which roster player (index into team.players) is in each portrait slot, left to right. */
+  const [radiantOrder, setRadiantOrder] = useState<number[]>([]);
+  const [direOrder, setDireOrder] = useState<number[]>([]);
   const [layout, setLayout] = useState<OverlayLayout>(DEFAULT_LAYOUT);
   const [resolution, setResolution] = useState<Resolution>("1080p");
   const size = RESOLUTIONS[resolution];
@@ -42,6 +45,8 @@ export function OverlayBuilder({
     radiant,
     dire,
     res: resolution,
+    rorder: radiantOrder.join(","),
+    dorder: direOrder.join(","),
     ...Object.fromEntries(Object.entries(layout).map(([key, value]) => [key, String(value)])),
   });
   const imagePath = `/overlay/image?${query.toString()}`;
@@ -77,22 +82,31 @@ export function OverlayBuilder({
 
       <section className="flex flex-col gap-4 rounded-xl border border-accent/30 bg-panel/95 p-4">
         <p className="text-sm text-muted">
-          Teams and players from Liquipedia ({tournament.replace(/_/g, " ")}), each side ordered carry, mid, offlane,
-          soft support, hard support.
+          Teams and players from Liquipedia ({tournament.replace(/_/g, " ")}). Each side starts in position order
+          (carry to hard support); set the slots to match the in-game order of the hero portraits.
         </p>
         {error && <p className="text-sm text-[#f87171]">Rosters couldn&apos;t be loaded: {error}</p>}
 
         <div className="grid gap-4 sm:grid-cols-2">
           {(
             [
-              ["Radiant", radiant, setRadiant, radiantTeam, "#4ade80"],
-              ["Dire", dire, setDire, direTeam, "#f87171"],
+              ["Radiant", radiant, setRadiant, radiantTeam, "#4ade80", radiantOrder, setRadiantOrder],
+              ["Dire", dire, setDire, direTeam, "#f87171", direOrder, setDireOrder],
             ] as const
-          ).map(([side, value, setValue, team, colour]) => (
+          ).map(([side, value, setValue, team, colour, order, setOrder]) => (
             <div key={side} className="flex flex-col gap-2">
               <label className="font-display text-sm font-bold tracking-widest uppercase" style={{ color: colour }}>
                 {side}
-                <select className={`${select} mt-1`} value={value} onChange={(e) => setValue(e.target.value)}>
+                <select
+                  className={`${select} mt-1`}
+                  value={value}
+                  onChange={(e) => {
+                    setValue(e.target.value);
+                    // Start in position order: carry, mid, offlane, soft, hard support.
+                    const chosen = teams.find((option) => option.name === e.target.value);
+                    setOrder(chosen ? chosen.players.map((_, index) => index) : []);
+                  }}
+                >
                   <option value="">Choose a team…</option>
                   {teams.map((option) => (
                     <option key={option.name} value={option.name}>
@@ -102,13 +116,42 @@ export function OverlayBuilder({
                 </select>
               </label>
               {team && (
-                <ol className="flex flex-col gap-0.5 text-sm">
-                  {team.players.map((player, index) => (
-                    <li key={player} className="flex gap-2">
-                      <span className="w-28 text-muted/60">{POSITIONS[index]}</span>
-                      <span className="font-semibold">{player}</span>
+                <ol className="flex flex-col gap-1 text-sm">
+                  <li className="text-xs text-muted/60">In-game order, left to right under the portraits:</li>
+                  {order.map((playerIndex, slot) => (
+                    <li key={slot} className="flex items-center gap-2">
+                      <span className="w-16 shrink-0 text-muted/60">Slot {slot + 1}</span>
+                      <select
+                        aria-label={`${side} slot ${slot + 1}`}
+                        className="flex-1 rounded-md border border-accent/30 bg-card px-2 py-1 text-sm text-paper focus:border-accent focus:outline-none"
+                        value={playerIndex}
+                        onChange={(e) => {
+                          // Put the chosen player here and swap whoever had this slot into their old place.
+                          const chosen = Number(e.target.value);
+                          const next = [...order];
+                          const from = next.indexOf(chosen);
+                          next[from] = next[slot];
+                          next[slot] = chosen;
+                          setOrder(next);
+                        }}
+                      >
+                        {team.players.map((player, index) => (
+                          <option key={player} value={index}>
+                            {player} ({POSITIONS[index] ?? "Player"})
+                          </option>
+                        ))}
+                      </select>
                     </li>
                   ))}
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => setOrder(team.players.map((_, index) => index))}
+                      className="cursor-pointer text-xs text-muted underline hover:text-paper"
+                    >
+                      Reset to position order
+                    </button>
+                  </li>
                 </ol>
               )}
             </div>
