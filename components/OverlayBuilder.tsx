@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { DEFAULT_LAYOUT, type OverlayLayout, type OverlayTeam } from "@/lib/overlay-teams";
+import { DEFAULT_LAYOUT, RESOLUTIONS, type OverlayLayout, type OverlayTeam, type Resolution } from "@/lib/overlay-teams";
 
 const SLIDERS: { key: keyof OverlayLayout; label: string; min: number; max: number }[] = [
   { key: "y", label: "Height from top", min: 0, max: 200 },
@@ -10,6 +10,8 @@ const SLIDERS: { key: keyof OverlayLayout; label: string; min: number; max: numb
   { key: "radiantX", label: "Radiant carry (centre)", min: 400, max: 900 },
   { key: "direX", label: "Dire first hero (centre)", min: 960, max: 1500 },
   { key: "size", label: "Text size", min: 10, max: 28 },
+  { key: "logoSize", label: "Logo size (0 = no logos)", min: 0, max: 80 },
+  { key: "logoY", label: "Logo height from top", min: 0, max: 100 },
 ];
 
 const POSITIONS = ["Carry", "Mid", "Offlane", "Soft support", "Hard support"];
@@ -31,12 +33,15 @@ export function OverlayBuilder({
   const [radiant, setRadiant] = useState("");
   const [dire, setDire] = useState("");
   const [layout, setLayout] = useState<OverlayLayout>(DEFAULT_LAYOUT);
+  const [resolution, setResolution] = useState<Resolution>("1080p");
+  const size = RESOLUTIONS[resolution];
   const [copied, setCopied] = useState(false);
 
   const query = new URLSearchParams({
     page: tournament,
     radiant,
     dire,
+    res: resolution,
     ...Object.fromEntries(Object.entries(layout).map(([key, value]) => [key, String(value)])),
   });
   const imagePath = `/overlay/image?${query.toString()}`;
@@ -119,8 +124,23 @@ export function OverlayBuilder({
           <>
             <p className="text-sm text-muted">
               Right-click the image → <strong>Save image as…</strong> and add it to OBS as an image source over the
-              game (1920×1080, transparent background). Or copy its address and use that as the image source.
+              game ({size.width}×{size.height}, transparent background; pick the size that matches your stream). Or copy
+              its address and use that as the image source.
             </p>
+            <label className="flex w-fit items-center gap-2 text-sm">
+              <span className="font-semibold">Resolution</span>
+              <select
+                className="rounded-lg border border-accent/40 bg-card px-3 py-1.5 text-sm text-paper focus:border-accent focus:outline-none"
+                value={resolution}
+                onChange={(e) => setResolution(e.target.value as Resolution)}
+              >
+                {(Object.keys(RESOLUTIONS) as Resolution[]).map((key) => (
+                  <option key={key} value={key}>
+                    {RESOLUTIONS[key].label}
+                  </option>
+                ))}
+              </select>
+            </label>
             {/* The checkerboard shows which parts are see-through. */}
             <div
               className="overflow-hidden rounded-lg border border-accent/30"
@@ -136,15 +156,15 @@ export function OverlayBuilder({
               <img
                 src={imagePath}
                 alt={`Player names: ${radiant} (Radiant) vs ${dire} (Dire)`}
-                width={1920}
-                height={1080}
+                width={size.width}
+                height={size.height}
                 className="block h-auto w-full"
               />
             </div>
             <div className="flex flex-wrap gap-2">
               <a
                 href={imagePath}
-                download={`overlay-${radiant}-vs-${dire}.png`.replace(/\s+/g, "-")}
+                download={`overlay-${radiant}-vs-${dire}-${resolution}.png`.replace(/\s+/g, "-")}
                 className="rounded-lg bg-accent-strong px-4 py-2 text-sm font-semibold text-white hover:bg-accent"
               >
                 Download PNG
@@ -172,7 +192,7 @@ export function OverlayBuilder({
           <summary className="cursor-pointer text-sm font-semibold">Adjust positions</summary>
           <p className="mt-2 text-xs text-muted/70">
             Line the names up under the hero portraits in the top bar once (e.g. against a 1080p screenshot); the
-            image address keeps these settings.
+            image address keeps these settings. Values are in 1080p pixels and scale to the chosen resolution.
           </p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             {SLIDERS.map((slider) => (

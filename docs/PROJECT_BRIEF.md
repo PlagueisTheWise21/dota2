@@ -327,8 +327,10 @@ style to a modern dark theme:
   `components/OverlayBuilder.tsx`) picks Radiant and Dire from a tournament's
   Liquipedia placement data (`lib/overlay-teams.ts`, default `1win_Essence/3`,
   players ordered by position 1-5, cached 1 h). `/overlay/image`
-  (`app/overlay/image/route.tsx`) returns a transparent 1920x1080 PNG with the
-  names in small white text under the top bar hero portraits (positions measured
+  (`app/overlay/image/route.tsx`) returns a transparent PNG (1080p, 1440p or 4K via `?res=`; layout values in 1080p px, scaled) with the
+  names in small white text under the top bar hero portraits, plus each team's
+  Liquipedia logo (team template, dark version) beside the outermost portrait
+  (positions measured
   from the owner's 1080p screenshot; adjustable on the page and kept in the URL).
   Right-click save or use the URL as an OBS image source. Not linked from the site.
 - Event data in Supabase is demo data for testing, not accurate.
