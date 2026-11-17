@@ -133,5 +133,6 @@ export type Resolution = keyof typeof RESOLUTIONS;
 
 export function resolutionFromParams(params: URLSearchParams): Resolution {
   const value = params.get("res");
-  return value && value in RESOLUTIONS ? (value as Resolution) : "1080p";
+  // 1440p unless the address asks for another size (the page always uses 1440p).
+  return value && value in RESOLUTIONS ? (value as Resolution) : "1440p";
 }

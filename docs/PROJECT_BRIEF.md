@@ -328,7 +328,7 @@ style to a modern dark theme:
   Liquipedia placement data (`lib/overlay-teams.ts`, default `1win_Essence/3`,
   players start in position order 1-5 and can be put in any portrait slot on the
   page, passed as `rorder`/`dorder`; cached 1 h). `/overlay/image`
-  (`app/overlay/image/route.tsx`) returns a transparent PNG (1080p, 1440p or 4K via `?res=`; layout values in 1080p px, scaled) with the
+  (`app/overlay/image/route.tsx`) returns a transparent 2560x1440 PNG (the page has no size choice; `?res=1080p|4k` still works in the URL; layout values in 1080p px, scaled) with the
   names in small white text under the top bar hero portraits, plus each team's
   Liquipedia logo (team template, dark version) beside the outermost portrait
   (positions measured

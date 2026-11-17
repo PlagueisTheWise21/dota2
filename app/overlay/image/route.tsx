@@ -11,7 +11,7 @@ import {
 /**
  * GET /overlay/image?radiant=<team>&dire=<team>[&rorder=…&dorder=…&res=1080p|1440p|4k&page=…&y=…&step=…&radiantX=…&direX=…&size=…]
  *
- * A transparent PNG at the chosen resolution (default 1920x1080) with the ten player names placed under the
+ * A transparent PNG, 2560x1440 by default (?res= can ask for 1080p or 4K) with the ten player names placed under the
  * Dota 2 top bar hero portraits: Radiant on the left, Dire on the right, each
  * carry, mid, offlane, soft support, hard support from left to right. Right-
  * click → Save image, or use this address as an OBS image / browser source.
