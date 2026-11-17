@@ -13,7 +13,7 @@ const SLIDERS: { key: keyof OverlayLayout; label: string; min: number; max: numb
   { key: "radiantX", label: "Radiant carry (centre)", min: 400, max: 900 },
   { key: "direX", label: "Dire first hero (centre)", min: 960, max: 1500 },
   { key: "size", label: "Text size", min: 10, max: 28 },
-  { key: "logoSize", label: "Logo size (0 = no logos)", min: 0, max: 80 },
+  { key: "logoSize", label: "Logo size", min: 10, max: 80 },
   { key: "logoY", label: "Logo height from top", min: 0, max: 100 },
 ];
 
@@ -41,6 +41,7 @@ export function OverlayBuilder({
   const [layout, setLayout] = useState<OverlayLayout>(DEFAULT_LAYOUT);
   const size = RESOLUTIONS[RESOLUTION];
   const [copied, setCopied] = useState(false);
+  const [showLogos, setShowLogos] = useState(true);
 
   const query = new URLSearchParams({
     page: tournament,
@@ -50,6 +51,8 @@ export function OverlayBuilder({
     rorder: radiantOrder.join(","),
     dorder: direOrder.join(","),
     ...Object.fromEntries(Object.entries(layout).map(([key, value]) => [key, String(value)])),
+    // Logo size 0 leaves the logos out of the image (app/overlay/image/route.tsx).
+    logoSize: String(showLogos ? layout.logoSize : 0),
   });
   const imagePath = `/overlay/image?${query.toString()}`;
   const ready = radiant && dire;
@@ -172,6 +175,15 @@ export function OverlayBuilder({
               game ({size.width}×{size.height}, transparent background). Or copy its address and use that as the image
               source.
             </p>
+            <label className="flex w-fit cursor-pointer items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={showLogos}
+                onChange={(e) => setShowLogos(e.target.checked)}
+                className="h-4 w-4 accent-[#1d9e75]"
+              />
+              Include team logos
+            </label>
             {/* The checkerboard shows which parts are see-through. */}
             <div
               className="overflow-hidden rounded-lg border border-accent/30"
